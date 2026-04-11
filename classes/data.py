@@ -1,10 +1,7 @@
-class Data:
-    name: str
-    vector: list[float]
-    truth: dict[str, float]
+from dataclasses import dataclass
 
-    def __init__(
-        self, name: str, data_vector: list[float], truth: dict[str, float]
-    ) -> None:
-        self.name = name
-        self.vector = data_vector
+
+@dataclass
+class Data:
+    label: float
+    vector: list[float]
