@@ -1,3 +1,11 @@
+from random import uniform
+
+import matplotlib
+
+matplotlib.use("QtAgg")
+import matplotlib.pyplot as plt
+import matplotx  # type: ignore
+
 from classes.activation_function import ActivationFunction
 from classes.algorithms import cross_entropy
 from classes.data import Data
@@ -5,9 +13,9 @@ from classes.error_calculator import ErrorCalculator
 from classes.input_manager import InputManager
 from classes.neuron import Neuron
 
-LEARNING_RATE = 0.1
-# TODO: connect bias properly
-# TODO: Speed-up training & separate from prediction
+plt.style.use(matplotx.styles.pitaya_smoothie["dark"])  # type: ignore
+
+LEARNING_RATE = 1.0
 
 
 def forward_propagation(
@@ -65,13 +73,52 @@ def backward_propagation(activation_value: float, data: Data, neuron: Neuron) ->
     return
 
 
+def randomize_dark_image_data() -> list[float]:
+    dark_data_x = uniform(a=0.95, b=1.0)
+    dark_data_y = uniform(a=0.95, b=1.0)
+    return [dark_data_x, dark_data_y]
+
+
+def randomize_bright_image_data() -> list[float]:
+    bright_data_x = uniform(a=0.0, b=0.95)
+    bright_data_y = uniform(a=0.0, b=0.95)
+    return [bright_data_x, bright_data_y]
+
+
+def train_model() -> list[float]:
+    iterations = input_manager.prompt_for_integer(
+        prompt="Enter a number of data sets to train with: "
+    )
+    loss_history: list[float] = []
+    for iteration in range(iterations):
+        image_data = (
+            randomize_dark_image_data()
+            if iteration % 2 == 0
+            else randomize_bright_image_data()
+        )
+        data = Data(label=1.0 if iteration % 2 == 0 else 0.0, vector=image_data)
+        activation_value = forward_propagation(data.vector, neuron, activation_function)
+        loss = calculate_loss(activation_value, data)
+        loss_history.append(loss)
+        backward_propagation(activation_value, data, neuron)
+        print("Image is:", "Pitch black" if activation_value > 0.5 else "Bright     ")
+        print(f"\rIteration: {iteration + 1} of {iterations}", end="", flush=True)
+    return loss_history
+
+
 if __name__ == "__main__":
-    neuron = Neuron(name="white", weights=[0.5, 0.5])
+    # random(), random()
+    neuron = Neuron(
+        name="white",
+        weights=[78.02563146707283, 77.20075351896011],
+        bias=-143.73853640727853,
+    )
     activation_function = ActivationFunction()
     error_calculator = ErrorCalculator()
     input_manager = InputManager()
 
     exit = False
+    loss_history: list[float] = []
     while exit is False:
         input_value = input("1 - Predict\n2 - Train\nq - quit\nChoice: ")
         match input_value:
@@ -80,12 +127,16 @@ if __name__ == "__main__":
                 activation_value = forward_propagation(
                     data.vector, neuron, activation_function
                 )
-                calculate_loss(activation_value, data)
+                """ calculate_loss(activation_value, data)"""
                 print(
                     "Image is:", "Pitch black" if activation_value > 0.5 else "Bright"
                 )
-                backward_propagation(activation_value, data, neuron)
-
+                """backward_propagation(activation_value, data, neuron) """
+            case "2":
+                loss_history += train_model()
+                reduced_loss_history = loss_history[::100]
+                plt.plot(reduced_loss_history, marker="o")  # type: ignore
+                plt.show()  # type: ignore
             case "q":
                 exit = True
             case _:
