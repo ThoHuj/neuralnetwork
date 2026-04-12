@@ -18,18 +18,6 @@ plt.style.use(matplotx.styles.pitaya_smoothie["dark"])  # type: ignore
 LEARNING_RATE = 1.0
 
 
-def forward_propagation(
-    data_vector: list[float], neuron: Neuron, activation_function: ActivationFunction
-) -> float:
-    print("Running forward propagation with data vector:", data_vector)
-    activation_function = activation_function
-    pre_activation_value = neuron.calculate_pre_activation_value(data_vector)
-    print("Pre_activation_value:", pre_activation_value)
-    prediction_value = activation_function.process_signal(pre_activation_value)
-    print("Prediction_value:", prediction_value)
-    return prediction_value
-
-
 def calculate_loss(activation_value: float, data: Data) -> float:
     print("Calculating loss")
     loss = cross_entropy(activation_value, correct_value=data.label)
@@ -85,7 +73,7 @@ def randomize_bright_image_data() -> list[float]:
     return [bright_data_x, bright_data_y]
 
 
-def train_model() -> list[float]:
+def train_model(neuron: Neuron) -> list[float]:
     iterations = input_manager.prompt_for_integer(
         prompt="Enter a number of data sets to train with: "
     )
@@ -97,7 +85,7 @@ def train_model() -> list[float]:
             else randomize_bright_image_data()
         )
         data = Data(label=1.0 if iteration % 2 == 0 else 0.0, vector=image_data)
-        activation_value = forward_propagation(data.vector, neuron, activation_function)
+        activation_value = neuron.forward_propagation(data.vector)
         loss = calculate_loss(activation_value, data)
         loss_history.append(loss)
         backward_propagation(activation_value, data, neuron)
@@ -106,14 +94,24 @@ def train_model() -> list[float]:
     return loss_history
 
 
+def print_prediction(activation_value: float) -> None:
+    print("Image is:", "Pitch black" if activation_value > 0.5 else "Bright")
+
+
+def plot_loss_history(loss_history: list[float]) -> None:
+    reduced_loss_history = loss_history[::100]
+    plt.plot(reduced_loss_history, marker="o")  # type: ignore
+    plt.show()  # type: ignore
+
+
 if __name__ == "__main__":
-    # random(), random()
+    activation_function = ActivationFunction()
     neuron = Neuron(
         name="white",
-        weights=[78.02563146707283, 77.20075351896011],
+        weights=[78.02563146707283, 77.20075351896011],  # [random(), random()]
         bias=-143.73853640727853,
+        activation_function=activation_function,
     )
-    activation_function = ActivationFunction()
     error_calculator = ErrorCalculator()
     input_manager = InputManager()
     loss_history: list[float] = []
@@ -126,19 +124,11 @@ if __name__ == "__main__":
         match menu_choice:
             case "1":
                 data = input_manager.prompt_for_data(enter_label=False)
-                activation_value = forward_propagation(
-                    data.vector, neuron, activation_function
-                )
-                """ calculate_loss(activation_value, data)"""
-                print(
-                    "Image is:", "Pitch black" if activation_value > 0.5 else "Bright"
-                )
-                """backward_propagation(activation_value, data, neuron) """
+                activation_value = neuron.forward_propagation(data_vector=data.vector)
+                print_prediction(activation_value)
             case "2":
-                loss_history += train_model()
-                reduced_loss_history = loss_history[::100]
-                plt.plot(reduced_loss_history, marker="o")  # type: ignore
-                plt.show()  # type: ignore
+                loss_history += train_model(neuron)
+                plot_loss_history(loss_history)
             case "q":
                 exit = True
             case _:
