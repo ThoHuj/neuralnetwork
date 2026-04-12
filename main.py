@@ -5,7 +5,9 @@ from classes.error_calculator import ErrorCalculator
 from classes.input_manager import InputManager
 from classes.neuron import Neuron
 
-LEARNING_RATE = 0.5
+LEARNING_RATE = 0.1
+# TODO: connect bias properly
+# TODO: Speed-up training & separate from prediction
 
 
 def forward_propagation(
@@ -22,28 +24,44 @@ def forward_propagation(
 
 def calculate_loss(activation_value: float, data: Data) -> float:
     print("Calculating loss")
-    loss = cross_entropy(activation_value, correct_value=data.label) ** 2
+    loss = cross_entropy(activation_value, correct_value=data.label)
     print("Loss:", loss)
     return loss
 
 
-def calculate_gradient(
-    activation_value: float, label: float, data_element: float
+def calculate_weight_gradient(
+    data_element: float,
+    error_gradient: float,
 ) -> float:
-    gradient = 2 * (activation_value - label) * data_element
-    return gradient
+    weight_gradient = (error_gradient) * data_element
+    return weight_gradient
 
 
-def backward_propagation(activation_value: float, data: Data, neuron: Neuron):
+def calculate_error_gradient(activation_value: float, label: float) -> float:
+    error_gradient = activation_value - label
+    return error_gradient
+
+
+def backward_propagation(activation_value: float, data: Data, neuron: Neuron) -> None:
+    print("Calculating error gradient")
+    error_gradient = calculate_error_gradient(activation_value, label=data.label)
+    print(f"Error gradient is: '{error_gradient}'")
     # One element is one gradient for that weight
-    print("Calculating gradients")
+    print("Calculating weight gradients")
     gradient_vector = [
-        calculate_gradient(activation_value, data.label, data.vector[i])
+        calculate_weight_gradient(
+            error_gradient=error_gradient, data_element=data.vector[i]
+        )
         for i in range(len(neuron.weights))
     ]
-    print("Tweaking weights")
+    print(f"Gradients are: '{gradient_vector}'")
+    print(f"Tweaking bias from '{neuron.bias}'")
+    neuron.bias = neuron.bias - (LEARNING_RATE * error_gradient)
+    print(f"Tweaked bias to '{neuron.bias}'")
+    print(f"Tweaking weights from '{neuron.weights}'")
     for i in range(len(neuron.weights)):
         neuron.weights[i] = neuron.weights[i] - (LEARNING_RATE * gradient_vector[i])
+    print(f"Tweaked weights to '{neuron.weights}'")
     return
 
 
@@ -61,6 +79,10 @@ if __name__ == "__main__":
                 data = input_manager.prompt_for_data()
                 activation_value = forward_propagation(
                     data.vector, neuron, activation_function
+                )
+                calculate_loss(activation_value, data)
+                print(
+                    "Image is:", "Pitch black" if activation_value > 0.5 else "Bright"
                 )
                 backward_propagation(activation_value, data, neuron)
 
