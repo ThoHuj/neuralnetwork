@@ -2,13 +2,16 @@ from classes.data import Data
 
 
 class InputManager:
-    def prompt_for_data(self) -> Data:
+    def prompt_for_data(self, enter_label: bool = True) -> Data:
         while True:
             try:
-                user_input = input("Enter this vector's label (the correct answer): ")
-                if user_input == "r":
-                    continue
-                label = float(user_input)
+                if enter_label:
+                    user_input = input(
+                        "Enter this vector's label (the correct answer): "
+                    )
+                    label = float(user_input)
+                else:
+                    label = 0.0
                 data_vector = [
                     float(input(f"Enter vector value {i}: ")) for i in range(2)
                 ]
@@ -35,3 +38,7 @@ class InputManager:
                 print("please enter a correct value.")
                 continue
             return True if user_input == "y" else False
+
+    def prompt_for_string(self, prompt: str) -> str:
+        user_input = input(prompt)
+        return user_input

@@ -116,14 +116,16 @@ if __name__ == "__main__":
     activation_function = ActivationFunction()
     error_calculator = ErrorCalculator()
     input_manager = InputManager()
-
-    exit = False
     loss_history: list[float] = []
+    exit = False
+
     while exit is False:
-        input_value = input("1 - Predict\n2 - Train\nq - quit\nChoice: ")
-        match input_value:
+        menu_choice = input_manager.prompt_for_string(
+            "1 - Predict\n2 - Train\nq - quit\nChoice: "
+        )
+        match menu_choice:
             case "1":
-                data = input_manager.prompt_for_data()
+                data = input_manager.prompt_for_data(enter_label=False)
                 activation_value = forward_propagation(
                     data.vector, neuron, activation_function
                 )
