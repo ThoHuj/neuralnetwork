@@ -2,63 +2,21 @@ from random import uniform
 
 import matplotlib
 
+from classes.gradient_calculator import GradientCalculator
+from classes.loss_calculator import LossCalculator
+
 matplotlib.use("QtAgg")
 import matplotlib.pyplot as plt
 import matplotx  # type: ignore
 
 from classes.activation_function import ActivationFunction
-from classes.algorithms import cross_entropy
 from classes.data import Data
-from classes.error_calculator import ErrorCalculator
 from classes.input_manager import InputManager
 from classes.neuron import Neuron
 
 plt.style.use(matplotx.styles.pitaya_smoothie["dark"])  # type: ignore
 
 LEARNING_RATE = 1.0
-
-
-def calculate_loss(activation_value: float, data: Data) -> float:
-    print("Calculating loss")
-    loss = cross_entropy(activation_value, correct_value=data.label)
-    print("Loss:", loss)
-    return loss
-
-
-def calculate_weight_gradient(
-    data_element: float,
-    error_gradient: float,
-) -> float:
-    weight_gradient = (error_gradient) * data_element
-    return weight_gradient
-
-
-def calculate_error_gradient(activation_value: float, label: float) -> float:
-    error_gradient = activation_value - label
-    return error_gradient
-
-
-def backward_propagation(activation_value: float, data: Data, neuron: Neuron) -> None:
-    print("Calculating error gradient")
-    error_gradient = calculate_error_gradient(activation_value, label=data.label)
-    print(f"Error gradient is: '{error_gradient}'")
-    # One element is one gradient for that weight
-    print("Calculating weight gradients")
-    gradient_vector = [
-        calculate_weight_gradient(
-            error_gradient=error_gradient, data_element=data.vector[i]
-        )
-        for i in range(len(neuron.weights))
-    ]
-    print(f"Gradients are: '{gradient_vector}'")
-    print(f"Tweaking bias from '{neuron.bias}'")
-    neuron.bias = neuron.bias - (LEARNING_RATE * error_gradient)
-    print(f"Tweaked bias to '{neuron.bias}'")
-    print(f"Tweaking weights from '{neuron.weights}'")
-    for i in range(len(neuron.weights)):
-        neuron.weights[i] = neuron.weights[i] - (LEARNING_RATE * gradient_vector[i])
-    print(f"Tweaked weights to '{neuron.weights}'")
-    return
 
 
 def randomize_dark_image_data() -> list[float]:
@@ -73,7 +31,9 @@ def randomize_bright_image_data() -> list[float]:
     return [bright_data_x, bright_data_y]
 
 
-def train_model(neuron: Neuron) -> list[float]:
+def train_model(
+    neuron: Neuron, loss_calculator: LossCalculator, print_info: bool = True
+) -> list[float]:
     iterations = input_manager.prompt_for_integer(
         prompt="Enter a number of data sets to train with: "
     )
@@ -86,11 +46,13 @@ def train_model(neuron: Neuron) -> list[float]:
         )
         data = Data(label=1.0 if iteration % 2 == 0 else 0.0, vector=image_data)
         activation_value = neuron.forward_propagation(data.vector)
-        loss = calculate_loss(activation_value, data)
+        loss = loss_calculator.calculate_loss(
+            activation_value, correct_value=data.label
+        )
         loss_history.append(loss)
-        backward_propagation(activation_value, data, neuron)
-        print("Image is:", "Pitch black" if activation_value > 0.5 else "Bright     ")
-        print(f"\rIteration: {iteration + 1} of {iterations}", end="", flush=True)
+        neuron.backward_propagation(activation_value, data)
+        if print_info:
+            print(f"\rIteration: {iteration + 1} of {iterations}", end="", flush=True)
     return loss_history
 
 
@@ -106,13 +68,16 @@ def plot_loss_history(loss_history: list[float]) -> None:
 
 if __name__ == "__main__":
     activation_function = ActivationFunction()
+    gradient_calculator = GradientCalculator()
+    loss_calculator = LossCalculator()
     neuron = Neuron(
         name="white",
         weights=[78.02563146707283, 77.20075351896011],  # [random(), random()]
         bias=-143.73853640727853,
         activation_function=activation_function,
+        gradient_calculator=gradient_calculator,
+        learning_rate=LEARNING_RATE,
     )
-    error_calculator = ErrorCalculator()
     input_manager = InputManager()
     loss_history: list[float] = []
     exit = False
@@ -127,7 +92,7 @@ if __name__ == "__main__":
                 activation_value = neuron.forward_propagation(data_vector=data.vector)
                 print_prediction(activation_value)
             case "2":
-                loss_history += train_model(neuron)
+                loss_history += train_model(neuron, loss_calculator)
                 plot_loss_history(loss_history)
             case "q":
                 exit = True
