@@ -1,4 +1,4 @@
-from random import uniform
+from random import random, uniform
 
 import matplotlib
 
@@ -16,7 +16,7 @@ from classes.neuron import Neuron
 
 plt.style.use(matplotx.styles.pitaya_smoothie["dark"])  # type: ignore
 
-LEARNING_RATE = 1.0
+LEARNING_RATE = 10.0
 
 
 def randomize_dark_image_data() -> list[float]:
@@ -66,14 +66,18 @@ def plot_loss_history(loss_history: list[float]) -> None:
     plt.show()  # type: ignore
 
 
+# Pre trained values:
+# weights=[78.02563146707283, 77.20075351896011],  # [random(), random()]
+# bias=-143.73853640727853,
+
 if __name__ == "__main__":
     activation_function = ActivationFunction()
     gradient_calculator = GradientCalculator()
     loss_calculator = LossCalculator()
     neuron = Neuron(
         name="white",
-        weights=[78.02563146707283, 77.20075351896011],  # [random(), random()]
-        bias=-143.73853640727853,
+        weights=[random(), random()],
+        bias=random(),
         activation_function=activation_function,
         gradient_calculator=gradient_calculator,
         learning_rate=LEARNING_RATE,
