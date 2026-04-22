@@ -16,6 +16,13 @@ plt.style.use(matplotx.styles.pitaya_smoothie["dark"])  # type: ignore
 
 LEARNING_RATE = 0.01
 
+NEURAL_NETWORK_ARCHITECTURE: list[dict[str, int | str]] = [
+    {"input_dimensions": 2, "output_dimensions": 25, "activation_function": "relu"},
+    {"input_dimensions": 25, "output_dimensions": 50, "activation_function": "relu"},
+    {"input_dimensions": 50, "output_dimensions": 50, "activation_function": "relu"},
+    {"input_dimensions": 50, "output_dimensions": 1, "activation_function": "sigmoid"},
+]
+
 
 def randomize_dark_image_data() -> list[float]:
     dark_data_x = uniform(a=0.25, b=0.0)
