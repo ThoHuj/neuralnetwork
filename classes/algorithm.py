@@ -32,7 +32,7 @@ class Algorithm:
         return float(da_cross_entropy_derivative)
 
     @staticmethod
-    def sigmoid(z_pre_activation_value: float) -> float:
+    def sigmoid(z_pre_activation_value: np.ndarray) -> np.ndarray:
         """Using sigmoid to calculate activation value (a) from pre activation value (z)."""
         # Clipping to avoid overflow warnings for large numbers
         clipped_z_pre_activation_value = np.clip(z_pre_activation_value, -500, 500)
@@ -40,20 +40,20 @@ class Algorithm:
         return a_activation_value
 
     @staticmethod
-    def sigmoid_derivative(z_pre_activation_value: float) -> float:
+    def sigmoid_derivative(z_pre_activation_value: np.ndarray) -> np.ndarray:
         """Using sigmoid to calculate g prime value from the provided pre activation value (z)."""
         sigmoid_product = Algorithm.sigmoid(z_pre_activation_value)
         g_prime_value = sigmoid_product * (1 - sigmoid_product)
         return g_prime_value
 
     @staticmethod
-    def relu(z_pre_activation_value: float) -> float:
+    def relu(z_pre_activation_value: np.ndarray) -> np.ndarray:
         """Using ReLU to calculate activation value (a) from pre activation value (z)."""
-        a_activation_value = float(max(0.0, z_pre_activation_value))
+        a_activation_value = np.max(0.0, z_pre_activation_value)
         return a_activation_value
 
     @staticmethod
-    def relu_derivative(z_pre_activation_value: float) -> float:
+    def relu_derivative(z_pre_activation_value: np.ndarray) -> np.ndarray:
         """Using ReLU to calculate g prime value from the provided pre activation value (z)."""
-        g_prime_value = float(z_pre_activation_value > 0)
+        g_prime_value = z_pre_activation_value > 0
         return g_prime_value

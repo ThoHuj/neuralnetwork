@@ -3,6 +3,8 @@ from random import random, uniform
 import matplotlib
 
 matplotlib.use("QtAgg")
+from typing import Callable
+
 import matplotlib.pyplot as plt
 import matplotx  # type: ignore
 import numpy as np
@@ -47,6 +49,67 @@ def initialize_layers(
         # Create a bias matrix and seed with random values
         state_dict["b" + str(layer_index)] = np.random.randn(layer_output_size, 1) * 0.1
     return state_dict
+
+
+def single_layer_forward_propagation(
+    previous_layer_activation: np.ndarray,
+    current_weights: np.ndarray,
+    current_biases: np.ndarray,
+    activation_function_key: str = "relu",
+) -> tuple[np.ndarray, np.ndarray]:
+    # Calculate pre activation values (z)
+    pre_activation_values = (
+        np.dot(current_weights, previous_layer_activation) + current_biases
+    )
+
+    # Set activation function
+    match activation_function_key:
+        case "relu":
+            activation_function: Callable[[np.ndarray], np.ndarray] = Algorithm.relu
+        case "sigmoid":
+            activation_function: Callable[[np.ndarray], np.ndarray] = Algorithm.sigmoid
+        case _:
+            raise RuntimeError("Provided function does not exist.")
+
+    # Use activation function to produce activation_data
+    # Also includes the pre activation values.
+    activation_data: tuple[np.ndarray, np.ndarray] = (
+        activation_function(pre_activation_values),
+        pre_activation_values,
+    )
+    return activation_data
+
+
+def full_forward_propagation(
+    x_input_vector: np.ndarray,
+    state_dict: dict[str, np.ndarray],
+    neural_network_architecture: list[dict[str, int | str]],
+) -> tuple[np.ndarray, dict[str, np.ndarray]]:
+    memory: dict[str, np.ndarray] = {}
+    current_activation_array = x_input_vector
+
+    for index, layer in enumerate(neural_network_architecture):
+        layer_index = index + 1
+        previous_activation_array = current_activation_array
+
+        assert type(layer["activation_function"]) is str
+        activation_function = layer["activation_function"]
+        current_weight_array = state_dict["W" + str(layer_index)]
+        current_bias_array = state_dict["b" + str(layer_index)]
+
+        current_activation_array, pre_activation_array = (
+            single_layer_forward_propagation(
+                previous_activation_array,
+                current_weight_array,
+                current_bias_array,
+                activation_function,
+            )
+        )
+
+        memory["A" + str(index)] = previous_activation_array
+        memory["Z" + str(layer_index)] = pre_activation_array
+
+    return current_activation_array, memory
 
 
 def randomize_dark_image_data() -> list[float]:
