@@ -8,8 +8,10 @@ from classes.loss_calculator import LossCalculator
 matplotlib.use("QtAgg")
 import matplotlib.pyplot as plt
 import matplotx  # type: ignore
+import numpy as np
 
 from classes.activation_function import ActivationFunction
+from classes.algorithms import Algorithms
 from classes.data import Data
 from classes.input_manager import InputManager
 from classes.neuron import Neuron
@@ -39,17 +41,23 @@ def train_model(
     )
     loss_history: list[float] = []
     for iteration in range(iterations):
-        image_data = (
+        # Generate and construct data
+        random_image_values = (
             randomize_dark_image_data()
             if iteration % 2 == 0
             else randomize_bright_image_data()
         )
+        image_data = np.array(random_image_values)
         data = Data(label=1.0 if iteration % 2 == 0 else 0.0, vector=image_data)
-        activation_value = neuron.forward_propagation(data.vector)
-        loss = loss_calculator.calculate_loss(
-            activation_value, correct_value=data.label
-        )
+
+        # Execute forward propagation
+        pre_activation_value, activation_value = neuron.forward_propagation(data.vector)
+
+        # Calculate loss
+        loss = Algorithms.cross_entropy(activation_value, y_true_label=data.label)
         loss_history.append(loss)
+
+        # Execute backward propagation
         neuron.backward_propagation(activation_value, data)
         if print_info:
             print(f"\rIteration: {iteration + 1} of {iterations}", end="", flush=True)
@@ -93,7 +101,9 @@ if __name__ == "__main__":
         match menu_choice:
             case "1":
                 data = input_manager.prompt_for_data(enter_label=False)
-                activation_value = neuron.forward_propagation(data_vector=data.vector)
+                activation_value = neuron.forward_propagation(
+                    x_input_vector=data.vector
+                )
                 print_prediction(activation_value)
             case "2":
                 loss_history += train_model(neuron, loss_calculator)

@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 
+from numpy import ndarray
+
 
 @dataclass
 class Data:
-    label: float
-    vector: list[float]
+    label: ndarray
+    vector: ndarray
