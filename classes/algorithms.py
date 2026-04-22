@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 
 
@@ -40,20 +42,28 @@ class Algorithms:
         return normalized_cross_entropy_derivative
 
     @staticmethod
-    def sigmoid(pre_activation_value: np.ndarray) -> np.ndarray:
+    def sigmoid(
+        pre_activation_value: Union[float, np.ndarray],
+    ) -> Union[float, np.ndarray]:
         # Clipping to avoid overflow warnings for large numbers
         clipped_pre_activation_value = np.clip(pre_activation_value, -500, 500)
         return 1 / (1 + np.exp(-clipped_pre_activation_value))
 
     @staticmethod
-    def sigmoid_derivative(pre_activation_values: np.ndarray) -> np.ndarray:
+    def sigmoid_derivative(
+        pre_activation_values: Union[float, np.ndarray],
+    ) -> Union[float, np.ndarray]:
         sigmoid_product = Algorithms.sigmoid(pre_activation_values)
         return sigmoid_product * (1 - sigmoid_product)
 
     @staticmethod
-    def relu(pre_activation_value: np.ndarray) -> np.ndarray:
+    def relu(
+        pre_activation_value: Union[float, np.ndarray],
+    ) -> Union[float, np.ndarray]:
         return np.maximum(0, pre_activation_value)
 
     @staticmethod
-    def relu_derivative(pre_activation_value: np.ndarray) -> np.ndarray:
+    def relu_derivative(
+        pre_activation_value: Union[float, np.ndarray],
+    ) -> Union[float, np.ndarray]:
         return np.where(pre_activation_value > 0, 1.0, 0.0)
