@@ -24,6 +24,31 @@ NEURAL_NETWORK_ARCHITECTURE: list[dict[str, int | str]] = [
 ]
 
 
+def initialize_layers(
+    neural_network_architecture: list[dict[str, int | str]], seed: int = 99
+):
+    np.random.seed(seed)
+    state_dict: dict[str, np.ndarray] = {}
+
+    for index, layer in enumerate(neural_network_architecture):
+        # Just to prevent layer index from starting from 0
+        layer_index = index + 1
+
+        # Extract number of dimensions from neural network architecture
+        assert type(layer["input_dimensions"]) is int
+        layer_input_size: int = layer["input_dimensions"]
+        assert type(layer["output_dimensions"]) is int
+        layer_output_size: int = layer["output_dimensions"]
+
+        # Create a weight matrix and seed with random values
+        state_dict["W" + str(layer_index)] = (
+            np.random.randn(layer_output_size, layer_input_size) * 0.1
+        )
+        # Create a bias matrix and seed with random values
+        state_dict["b" + str(layer_index)] = np.random.randn(layer_output_size, 1) * 0.1
+    return state_dict
+
+
 def randomize_dark_image_data() -> list[float]:
     dark_data_x = uniform(a=0.25, b=0.0)
     dark_data_y = uniform(a=0.25, b=0.0)
