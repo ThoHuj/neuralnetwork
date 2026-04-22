@@ -1,6 +1,8 @@
+from typing import Callable
+
 import numpy as np
 
-from classes.algorithms import Algorithms
+from classes.algorithm import Algorithm
 from classes.data import Data
 
 
@@ -8,12 +10,18 @@ class Neuron:
     """A single neuron."""
 
     def __init__(
-        self, name: str, weights: np.ndarray, learning_rate: float, bias: float = 1.0
+        self,
+        name: str,
+        weights: np.ndarray,
+        learning_rate: float,
+        bias: float = 1.0,
+        activation_function: Callable[[float], float] = Algorithm.sigmoid,
     ):
         self.feature = name
         self.weights = weights
         self.bias = bias
         self.learning_rate = learning_rate
+        self.activation_function = activation_function
 
     def forward_propagation(self, x_input_vector: np.ndarray) -> tuple[float, float]:
         """'Observes' data and produces an activation value."""
@@ -21,7 +29,7 @@ class Neuron:
         z_pre_activation_value = np.dot(self.weights, x_input_vector) + self.bias
 
         # Use an activation function to produce the activation value (a)
-        a_activation_value = Algorithms.sigmoid(z_pre_activation_value)
+        a_activation_value = self.activation_function(z_pre_activation_value)
         return z_pre_activation_value, a_activation_value
 
     def backward_propagation(
@@ -29,10 +37,10 @@ class Neuron:
     ) -> tuple[float, np.ndarray]:
         """Calculates gradients."""
         # Calculate loss gradient (dZ)
-        dz_loss_gradient = float(a_activation_value - data.label)
+        dz_loss_gradient = a_activation_value - data.y_true_label
 
         # Calculate weight gradient array (dW)
-        dw_weight_gradients = dz_loss_gradient * data.vector
+        dw_weight_gradients = dz_loss_gradient * data.x_input_vector
         return dz_loss_gradient, dw_weight_gradients
 
     def update_parameters(

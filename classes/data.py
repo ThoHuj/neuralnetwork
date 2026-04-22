@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from numpy import ndarray
+import numpy as np
 
 
 @dataclass
 class Data:
-    label: ndarray
-    vector: ndarray
+    y_true_label: float
+    x_input_vector: np.ndarray

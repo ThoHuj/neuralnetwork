@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class Algorithms:
+class Algorithm:
     @staticmethod
     def cross_entropy(a_activation_value: float, y_true_label: float) -> float:
         """Calculates the loss for a single data example."""
@@ -33,6 +33,7 @@ class Algorithms:
 
     @staticmethod
     def sigmoid(z_pre_activation_value: float) -> float:
+        """Using sigmoid to calculate activation value (a) from pre activation value (z)."""
         # Clipping to avoid overflow warnings for large numbers
         clipped_z_pre_activation_value = np.clip(z_pre_activation_value, -500, 500)
         a_activation_value = 1 / (1 + np.exp(-clipped_z_pre_activation_value))
@@ -40,16 +41,19 @@ class Algorithms:
 
     @staticmethod
     def sigmoid_derivative(z_pre_activation_value: float) -> float:
-        sigmoid_product = Algorithms.sigmoid(z_pre_activation_value)
+        """Using sigmoid to calculate g prime value from the provided pre activation value (z)."""
+        sigmoid_product = Algorithm.sigmoid(z_pre_activation_value)
         g_prime_value = sigmoid_product * (1 - sigmoid_product)
         return g_prime_value
 
     @staticmethod
     def relu(z_pre_activation_value: float) -> float:
+        """Using ReLU to calculate activation value (a) from pre activation value (z)."""
         a_activation_value = float(max(0.0, z_pre_activation_value))
         return a_activation_value
 
     @staticmethod
     def relu_derivative(z_pre_activation_value: float) -> float:
+        """Using ReLU to calculate g prime value from the provided pre activation value (z)."""
         g_prime_value = float(z_pre_activation_value > 0)
         return g_prime_value

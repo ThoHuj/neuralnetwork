@@ -1,3 +1,5 @@
+import numpy as np
+
 from classes.data import Data
 
 
@@ -19,6 +21,7 @@ class InputManager:
                     continue
             except Exception:
                 continue  # Keep asking if a typo is made
+            data_vector = np.array(data_vector)
             return Data(label, data_vector)
 
     def prompt_for_integer(self, prompt: str) -> int:
