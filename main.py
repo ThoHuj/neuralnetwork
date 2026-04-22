@@ -14,18 +14,18 @@ from classes.neuron import Neuron
 
 plt.style.use(matplotx.styles.pitaya_smoothie["dark"])  # type: ignore
 
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.01
 
 
 def randomize_dark_image_data() -> list[float]:
-    dark_data_x = uniform(a=0.95, b=1.0)
-    dark_data_y = uniform(a=0.95, b=1.0)
+    dark_data_x = uniform(a=0.25, b=0.0)
+    dark_data_y = uniform(a=0.25, b=0.0)
     return [dark_data_x, dark_data_y]
 
 
 def randomize_bright_image_data() -> list[float]:
-    bright_data_x = uniform(a=0.0, b=0.95)
-    bright_data_y = uniform(a=0.0, b=0.95)
+    bright_data_x = uniform(a=0.25, b=1.00)
+    bright_data_y = uniform(a=0.25, b=1.00)
     return [bright_data_x, bright_data_y]
 
 
@@ -73,7 +73,7 @@ def train_model(
 
 
 def print_prediction(activation_value: float) -> None:
-    print("Image is:", "Pitch black" if activation_value > 0.5 else "Bright")
+    print("Image is:", "Dark" if activation_value > 0.5 else "Bright")
 
 
 def plot_loss_history(loss_history: list[float]) -> None:
