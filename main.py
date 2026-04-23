@@ -25,10 +25,13 @@ NEURAL_NETWORK_ARCHITECTURE: list[dict[str, int | str]] = [
     {"input_dimensions": 50, "output_dimensions": 1, "activation_function": "sigmoid"},
 ]
 
+# TODO: There is a more modern way of type annotating ndarrays
+
 
 def initialize_layers(
     neural_network_architecture: list[dict[str, int | str]], seed: int = 99
-):
+) -> dict[str, np.ndarray]:
+
     np.random.seed(seed)
     state_dict: dict[str, np.ndarray] = {}
 
@@ -48,6 +51,7 @@ def initialize_layers(
         )
         # Create a bias matrix and seed with random values
         state_dict["b" + str(layer_index)] = np.random.randn(layer_output_size, 1) * 0.1
+
     return state_dict
 
 
@@ -57,6 +61,7 @@ def single_layer_forward_propagation(
     current_b_biases: np.ndarray,
     activation_function_key: str = "relu",
 ) -> tuple[np.ndarray, np.ndarray]:
+
     # Calculate pre activation values (z)
     z_pre_activation_values = (
         np.dot(current_w_weights, previous_layer_a_activation) + current_b_biases
@@ -65,16 +70,18 @@ def single_layer_forward_propagation(
     # Set activation function
     match activation_function_key:
         case "relu":
-            activation_function: Callable[[np.ndarray], np.ndarray] = Algorithm.relu
+            g_activation_function: Callable[[np.ndarray], np.ndarray] = Algorithm.relu
         case "sigmoid":
-            activation_function: Callable[[np.ndarray], np.ndarray] = Algorithm.sigmoid
+            g_activation_function: Callable[[np.ndarray], np.ndarray] = (
+                Algorithm.sigmoid
+            )
         case _:
-            raise RuntimeError("Provided function does not exist.")
+            raise RuntimeError("Requested activation function does not exist.")
 
     # Use activation function to produce activation_data
     # Also includes the pre activation values.
     a_activation_data: tuple[np.ndarray, np.ndarray] = (
-        activation_function(z_pre_activation_values),
+        g_activation_function(z_pre_activation_values),
         z_pre_activation_values,
     )
     return a_activation_data
@@ -85,7 +92,8 @@ def full_forward_propagation(
     state_dict: dict[str, np.ndarray],
     neural_network_architecture: list[dict[str, int | str]],
 ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
-    memory: dict[str, np.ndarray] = {}
+
+    forward_propagation_cache: dict[str, np.ndarray] = {}
     current_a_activation_array = x_input_vector
 
     for index, layer in enumerate(neural_network_architecture):
@@ -93,7 +101,7 @@ def full_forward_propagation(
         previous_a_activation_array = current_a_activation_array
 
         assert type(layer["activation_function"]) is str
-        activation_function = layer["activation_function"]
+        g_activation_function = layer["activation_function"]
         current_w_weight_array = state_dict["W" + str(layer_index)]
         current_b_bias_array = state_dict["b" + str(layer_index)]
 
@@ -102,14 +110,64 @@ def full_forward_propagation(
                 previous_a_activation_array,
                 current_w_weight_array,
                 current_b_bias_array,
-                activation_function,
+                g_activation_function,
             )
         )
 
-        memory["A" + str(index)] = previous_a_activation_array
-        memory["Z" + str(layer_index)] = z_pre_activation_array
+        forward_propagation_cache["A" + str(index)] = previous_a_activation_array
+        forward_propagation_cache["Z" + str(layer_index)] = z_pre_activation_array
 
-    return current_a_activation_array, memory
+    final_a_activation_array = current_a_activation_array
+
+    return final_a_activation_array, forward_propagation_cache
+
+
+def single_layer_backward_propagation(
+    current_da_loss_gradient: np.ndarray,
+    current_w_weight_array: np.ndarray,
+    current_z_pre_activation_array: np.ndarray,
+    previous_a_activation_array: np.ndarray,
+    activation_function_key: str = "relu",
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    m_batch_size = previous_a_activation_array.shape[1]
+
+    # Set activation function
+    match activation_function_key:
+        case "relu":
+            g_activation_function_derivative: Callable[
+                [np.ndarray, np.ndarray], np.ndarray
+            ] = Algorithm.relu_derivative
+        case "sigmoid":
+            g_activation_function_derivative: Callable[
+                [np.ndarray, np.ndarray], np.ndarray
+            ] = Algorithm.sigmoid_derivative
+        case _:
+            raise RuntimeError("Requested activation function does not exist.")
+
+    current_dz_pre_activation_gradient = g_activation_function_derivative(
+        current_da_loss_gradient, current_z_pre_activation_array
+    )
+
+    current_dw_weight_gradient_array = (
+        np.dot(current_dz_pre_activation_gradient, previous_a_activation_array.T)
+        / m_batch_size
+    )
+    current_db_bias_gradient_array = (
+        np.sum(current_dz_pre_activation_gradient, axis=1, keepdims=True) / m_batch_size
+    )
+    previous_da_loss_gradient = np.dot(
+        current_w_weight_array.T, current_dz_pre_activation_gradient
+    )
+
+    return (
+        previous_da_loss_gradient,
+        current_dw_weight_gradient_array,
+        current_db_bias_gradient_array,
+    )
+
+
+def update_layers():
+    pass
 
 
 def randomize_dark_image_data() -> list[float]:

@@ -19,17 +19,21 @@ class Algorithm:
 
     @staticmethod
     def cross_entropy_derivative(
-        a_activation_value: float, y_true_label: float
-    ) -> float:
-        """Calculates the derivative of the loss (dA) for a single data example."""
+        a_activation_value_array: np.ndarray, y_true_label_array: np.ndarray
+    ) -> np.ndarray:
+        """Calculates the derivative of the loss (dA)."""
+
         epsilon = 1e-15
-        a_activation_value_clipped = np.clip(a_activation_value, epsilon, (1 - epsilon))
+        a_activation_value_clipped = np.clip(
+            a_activation_value_array, epsilon, (1 - epsilon)
+        )
 
         # Binary cross-entropy derivative calculation
-        da_cross_entropy_derivative = -(y_true_label / a_activation_value_clipped) + (
-            (1 - y_true_label) / (1 - a_activation_value_clipped)
+        da_cross_entropy_derivative = -(
+            np.divide(y_true_label_array, a_activation_value_clipped)
+            - np.divide(1 - y_true_label_array, 1 - a_activation_value_clipped)
         )
-        return float(da_cross_entropy_derivative)
+        return da_cross_entropy_derivative
 
     @staticmethod
     def sigmoid(z_pre_activation_value: np.ndarray) -> np.ndarray:
@@ -40,20 +44,27 @@ class Algorithm:
         return a_activation_value
 
     @staticmethod
-    def sigmoid_derivative(z_pre_activation_value: np.ndarray) -> np.ndarray:
-        """Using sigmoid to calculate g prime value from the provided pre activation value (z)."""
+    def sigmoid_derivative(
+        da_loss_gradient: np.ndarray, z_pre_activation_value: np.ndarray
+    ) -> np.ndarray:
+        """Using sigmoid to calculate the pre activation gradient from the provided pre activation value (z)."""
         sigmoid_product = Algorithm.sigmoid(z_pre_activation_value)
-        g_prime_value = sigmoid_product * (1 - sigmoid_product)
-        return g_prime_value
+        dz_pre_activation_gradient = (
+            da_loss_gradient * sigmoid_product * (1 - sigmoid_product)
+        )
+        return dz_pre_activation_gradient
 
     @staticmethod
     def relu(z_pre_activation_value: np.ndarray) -> np.ndarray:
         """Using ReLU to calculate activation value (a) from pre activation value (z)."""
-        a_activation_value = np.max(0.0, z_pre_activation_value)
+        a_activation_value = np.maximum(0.0, z_pre_activation_value)
         return a_activation_value
 
     @staticmethod
-    def relu_derivative(z_pre_activation_value: np.ndarray) -> np.ndarray:
-        """Using ReLU to calculate g prime value from the provided pre activation value (z)."""
-        g_prime_value = z_pre_activation_value > 0
-        return g_prime_value
+    def relu_derivative(
+        da_loss_gradient: np.ndarray, z_pre_activation_value: np.ndarray
+    ) -> np.ndarray:
+        """Using ReLU to calculate the pre activation gradient from the provided pre activation value (z)."""
+        dz_pre_activation_gradient = np.array(da_loss_gradient, copy=True)
+        dz_pre_activation_gradient[z_pre_activation_value <= 0] = 0
+        return dz_pre_activation_gradient
