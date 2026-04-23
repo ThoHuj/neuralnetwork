@@ -3,7 +3,9 @@ import numpy as np
 
 class Algorithm:
     @staticmethod
-    def cross_entropy(a_activation_value: float, y_true_label: float) -> float:
+    def cross_entropy(
+        a_activation_value: np.ndarray, y_true_label: np.ndarray
+    ) -> float:
         """Calculates the loss for a single data example."""
         # Epsilon is used to clip the activation_value slightly away from 0 and 1
         # so np.log(0) doesn't throw a NaN error.

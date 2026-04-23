@@ -1,5 +1,3 @@
-from random import random, uniform
-
 import matplotlib
 
 matplotlib.use("QtAgg")
@@ -12,7 +10,6 @@ import numpy as np
 from classes.algorithm import Algorithm
 from classes.data import Data
 from classes.input_manager import InputManager
-from classes.neuron import Neuron
 
 plt.style.use(matplotx.styles.pitaya_smoothie["dark"])  # type: ignore
 
@@ -40,9 +37,9 @@ def initialize_layers(
         layer_index = index + 1
 
         # Extract number of dimensions from neural network architecture
-        assert type(layer["input_dimensions"]) is int
+        assert isinstance(layer["input_dimensions"], int)
         layer_input_size: int = layer["input_dimensions"]
-        assert type(layer["output_dimensions"]) is int
+        assert isinstance(layer["output_dimensions"], int)
         layer_output_size: int = layer["output_dimensions"]
 
         # Create a weight matrix and seed with random values
@@ -100,8 +97,8 @@ def full_forward_propagation(
         layer_index = index + 1
         previous_a_activation_array = current_a_activation_array
 
-        assert type(layer["activation_function"]) is str
-        g_activation_function = layer["activation_function"]
+        assert isinstance(layer["activation_function"], str)
+        layer_activation_function_key = layer["activation_function"]
         current_w_weight_array = state_dict["W" + str(layer_index)]
         current_b_bias_array = state_dict["b" + str(layer_index)]
 
@@ -110,15 +107,20 @@ def full_forward_propagation(
                 previous_a_activation_array,
                 current_w_weight_array,
                 current_b_bias_array,
-                g_activation_function,
+                layer_activation_function_key,
             )
         )
 
         forward_propagation_cache["A" + str(index)] = previous_a_activation_array
         forward_propagation_cache["Z" + str(layer_index)] = z_pre_activation_array
 
-    final_a_activation_array = current_a_activation_array
+        # print(current_a_activation_array.shape[1])
 
+    final_a_activation_array = current_a_activation_array
+    # print(
+    #     "Fullforward is done. final activation array length is",
+    #     final_a_activation_array.shape[1],
+    # )
     return final_a_activation_array, forward_propagation_cache
 
 
@@ -131,7 +133,7 @@ def single_layer_backward_propagation(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     m_batch_size = previous_a_activation_array.shape[1]
 
-    # Set activation function
+    # Set activation function (G)
     match activation_function_key:
         case "relu":
             g_activation_function_derivative: Callable[
@@ -144,17 +146,23 @@ def single_layer_backward_propagation(
         case _:
             raise RuntimeError("Requested activation function does not exist.")
 
+    # Calculate this layer's pre activation gradient (dZ)
     current_dz_pre_activation_gradient = g_activation_function_derivative(
         current_da_loss_gradient, current_z_pre_activation_array
     )
 
+    # Calculate this layer's weight gradients (dW)
     current_dw_weight_gradient_array = (
         np.dot(current_dz_pre_activation_gradient, previous_a_activation_array.T)
         / m_batch_size
     )
+
+    # Calculate this layer's bias gradient (dB)
     current_db_bias_gradient_array = (
         np.sum(current_dz_pre_activation_gradient, axis=1, keepdims=True) / m_batch_size
     )
+
+    # Calculate loss gradient (dA) before changing weights
     previous_da_loss_gradient = np.dot(
         current_w_weight_array.T, current_dz_pre_activation_gradient
     )
@@ -166,67 +174,125 @@ def single_layer_backward_propagation(
     )
 
 
-def update_layers():
-    pass
+def full_backward_propagation(
+    a_activation_value_array: np.ndarray,
+    y_true_label_array: np.ndarray,
+    forward_propagation_cache: dict[str, np.ndarray],
+    state_dict: dict[str, np.ndarray],
+    neural_network_architecture: list[dict[str, int | str]],
+) -> dict[str, np.ndarray]:
+    """Orchestrates the backward propagation through all layers of the network."""
+
+    gradients_dict: dict[str, np.ndarray] = {}
+
+    # Calculate loss gradient (dA)
+    previous_da_loss_gradient = Algorithm.cross_entropy_derivative(
+        a_activation_value_array, y_true_label_array
+    )
+
+    # Loop backwards through all layers in network
+    for index, layer_configuration in reversed(
+        list(enumerate(neural_network_architecture))
+    ):
+        # Layers start at 1, not 0
+        layer_index = index + 1
+
+        # Fetch this specific layer's activation function key
+        assert isinstance(layer_configuration["activation_function"], str)
+        layer_activation_function_key: str = layer_configuration["activation_function"]
+
+        # The loss gradient (dA) that was outputted from the previous loop
+        # becomes the input loss gradient for the current layer
+        current_da_loss_gradient = previous_da_loss_gradient
+
+        # Obtain the cached data for this specific layer
+        previous_a_activation_array = forward_propagation_cache["A" + str(index)]
+        current_z_pre_activation_array = forward_propagation_cache[
+            "Z" + str(layer_index)
+        ]
+
+        # Obtain the weights for this specific layer
+        current_w_weight_array = state_dict["W" + str(layer_index)]
+
+        # Calculate gradients for the current layer and get the loss gradient (dA) for the next layer
+        (
+            previous_da_loss_gradient,
+            current_dw_weight_gradient_array,
+            current_db_bias_gradient_array,
+        ) = single_layer_backward_propagation(
+            current_da_loss_gradient,
+            current_w_weight_array,
+            current_z_pre_activation_array,
+            previous_a_activation_array,
+            layer_activation_function_key,
+        )
+
+        # Store gradients for updating weights later
+        gradients_dict["dW" + str(layer_index)] = current_dw_weight_gradient_array
+        gradients_dict["db" + str(layer_index)] = current_db_bias_gradient_array
+
+    return gradients_dict
 
 
-def randomize_dark_image_data() -> list[float]:
-    dark_data_x = uniform(a=0.25, b=0.0)
-    dark_data_y = uniform(a=0.25, b=0.0)
-    return [dark_data_x, dark_data_y]
+def update_layers(
+    state_dict: dict[str, np.ndarray],
+    gradients_dict: dict[str, np.ndarray],
+    neural_network_architecture: list[dict[str, int | str]],
+    learning_rate: float,
+):
+    # Iterate over each layer and subtract their corresponding weight gradient (dW) and bias gradient (db).
+    # This modifies the weights and the bias of all neurons in a layer.
+    for index, _ in enumerate(neural_network_architecture):
+        layer_index = index + 1
 
+        state_dict["W" + str(layer_index)] -= (
+            learning_rate * gradients_dict["dW" + str(layer_index)]
+        )
+        state_dict["b" + str(layer_index)] -= (
+            learning_rate * gradients_dict["db" + str(layer_index)]
+        )
 
-def randomize_bright_image_data() -> list[float]:
-    bright_data_x = uniform(a=0.25, b=1.00)
-    bright_data_y = uniform(a=0.25, b=1.00)
-    return [bright_data_x, bright_data_y]
+    return state_dict
 
 
 def train_model(
-    neuron: Neuron, iterations: int, print_info: bool = True
+    iterations: int, neural_network_state_dict: dict[str, np.ndarray]
 ) -> list[float]:
+
     loss_history: list[float] = []
 
     for iteration in range(iterations):
-        # Generate and construct input vector with true labels
-        random_image_data = (
-            randomize_dark_image_data()
-            if iteration % 2 == 0
-            else randomize_bright_image_data()
+        print("\rRunning iteration", iteration + 1, "of", iterations)
+        random_image_data_vector = np.random.rand(1, 2)
+        y_true_label = (
+            np.array([[1.0]])
+            if np.mean(random_image_data_vector) < 0.5
+            else np.array([[0.0]])
         )
-        image_data_array = np.array(random_image_data)
-        data = Data(
-            y_true_label=1.0 if iteration % 2 == 0 else 0.0,
-            x_input_vector=image_data_array,
+        generated_image = Data(y_true_label, random_image_data_vector)
+        a_activation_array, forward_propagation_cache = full_forward_propagation(
+            generated_image.x_input_vector,
+            neural_network_state_dict,
+            NEURAL_NETWORK_ARCHITECTURE,
         )
-
-        # Execute forward propagation on neuron with generated data
-        z_pre_activation_value, a_activation_value = neuron.forward_propagation(
-            data.x_input_vector
-        )
-
-        # Calculate loss
-        loss = Algorithm.cross_entropy(
-            a_activation_value, y_true_label=data.y_true_label
-        )
+        loss = Algorithm.cross_entropy(a_activation_array, generated_image.y_true_label)
         loss_history.append(loss)
 
-        # Execute backward propagation to generate gradients
-        dz_loss_gradient, dw_weights_gradient = neuron.backward_propagation(
-            a_activation_value, data
+        gradients_dict: dict[str, np.ndarray] = full_backward_propagation(
+            a_activation_array,
+            y_true_label,
+            forward_propagation_cache,
+            neural_network_state_dict,
+            NEURAL_NETWORK_ARCHITECTURE,
+        )
+        new_state_dict = update_layers(
+            neural_network_state_dict,
+            gradients_dict,
+            NEURAL_NETWORK_ARCHITECTURE,
+            LEARNING_RATE,
         )
 
-        # Tweak weights and bias
-        neuron.update_parameters(dz_loss_gradient, dw_weights_gradient)
-
-        # Print info
-        if print_info:
-            print(f"\rIteration: {iteration + 1} of {iterations}", end="", flush=True)
     return loss_history
-
-
-def print_prediction(activation_value: float) -> None:
-    print("Image is:", "Dark" if activation_value > 0.5 else "Bright")
 
 
 def plot_loss_history(loss_history: list[float]) -> None:
@@ -236,13 +302,7 @@ def plot_loss_history(loss_history: list[float]) -> None:
 
 
 def main() -> None:
-    neuron = Neuron(
-        name="white",
-        weights=np.array([random(), random()]),
-        bias=random(),
-        learning_rate=LEARNING_RATE,
-        activation_function=Algorithm.sigmoid,
-    )
+    neural_network_state_dict = initialize_layers(NEURAL_NETWORK_ARCHITECTURE)
     input_manager = InputManager()
     loss_history: list[float] = []
     exit = False
@@ -254,15 +314,30 @@ def main() -> None:
         match menu_choice:
             case "1":
                 data = input_manager.prompt_for_data(enter_label=False)
-                z_pre_activation_value, a_activation_value = neuron.forward_propagation(
-                    x_input_vector=data.x_input_vector
+                a_activation_array, _ = full_forward_propagation(
+                    data.x_input_vector,
+                    neural_network_state_dict,
+                    NEURAL_NETWORK_ARCHITECTURE,
                 )
-                print_prediction(a_activation_value)
+                print(a_activation_array.shape[1])
+                print("Predicions: ")
+                for index, probability in enumerate(a_activation_array.flatten()):
+                    predicted_class = "Bright" if probability < 0.5 else "Dark"
+                    print(
+                        "Output number: ",
+                        index,
+                        "\nPrediction: ",
+                        predicted_class,
+                        "\nProbability:",
+                        probability,
+                    )
+
             case "2":
                 iterations = input_manager.prompt_for_integer(
                     prompt="Enter a number of data sets to train with: "
                 )
-                loss_history += train_model(neuron, iterations)
+
+                loss_history += train_model(iterations, neural_network_state_dict)
                 plot_loss_history(loss_history)
             case "q":
                 exit = True
