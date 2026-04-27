@@ -8,7 +8,6 @@ import matplotx  # type: ignore
 import numpy as np
 
 from classes.algorithm import Algorithm
-from classes.data import Data
 from classes.input_manager import InputManager
 
 plt.style.use(matplotx.styles.pitaya_smoothie["dark"])  # type: ignore
@@ -16,10 +15,10 @@ plt.style.use(matplotx.styles.pitaya_smoothie["dark"])  # type: ignore
 LEARNING_RATE = 0.01
 
 NEURAL_NETWORK_ARCHITECTURE: list[dict[str, int | str]] = [
-    {"input_dimensions": 2, "output_dimensions": 25, "activation_function": "relu"},
-    {"input_dimensions": 25, "output_dimensions": 50, "activation_function": "relu"},
-    {"input_dimensions": 50, "output_dimensions": 50, "activation_function": "relu"},
-    {"input_dimensions": 50, "output_dimensions": 1, "activation_function": "sigmoid"},
+    {"input_dimensions": 2, "output_dimensions": 400, "activation_function": "relu"},
+    {"input_dimensions": 400, "output_dimensions": 400, "activation_function": "relu"},
+    {"input_dimensions": 400, "output_dimensions": 400, "activation_function": "relu"},
+    {"input_dimensions": 400, "output_dimensions": 1, "activation_function": "sigmoid"},
 ]
 
 # TODO: There is a more modern way of type annotating ndarrays
@@ -114,13 +113,8 @@ def full_forward_propagation(
         forward_propagation_cache["A" + str(index)] = previous_a_activation_array
         forward_propagation_cache["Z" + str(layer_index)] = z_pre_activation_array
 
-        # print(current_a_activation_array.shape[1])
-
     final_a_activation_array = current_a_activation_array
-    # print(
-    #     "Fullforward is done. final activation array length is",
-    #     final_a_activation_array.shape[1],
-    # )
+
     return final_a_activation_array, forward_propagation_cache
 
 
@@ -256,36 +250,35 @@ def update_layers(
 
 
 def train_model(
-    iterations: int, neural_network_state_dict: dict[str, np.ndarray]
+    iterations: int,
+    neural_network_state_dict: dict[str, np.ndarray],
+    batch_size: int = 10000,
 ) -> list[float]:
 
     loss_history: list[float] = []
 
     for iteration in range(iterations):
-        print("\rRunning iteration", iteration + 1, "of", iterations)
-        random_image_data_vector = np.random.rand(1, 2)
-        y_true_label = (
-            np.array([[1.0]])
-            if np.mean(random_image_data_vector) < 0.5
-            else np.array([[0.0]])
-        )
-        generated_image = Data(y_true_label, random_image_data_vector)
+        print("\rRunning iteration", iteration + 1, "of", iterations, end="")
+        random_image_data_vector = np.random.rand(2, batch_size)
+        column_means = np.mean(random_image_data_vector, axis=0)
+        y_true_label = (column_means < 0.5).astype(float).reshape(1, -1)
+
         a_activation_array, forward_propagation_cache = full_forward_propagation(
-            generated_image.x_input_vector,
+            random_image_data_vector,
             neural_network_state_dict,
             NEURAL_NETWORK_ARCHITECTURE,
         )
-        loss = Algorithm.cross_entropy(a_activation_array, generated_image.y_true_label)
+        loss = Algorithm.cross_entropy(a_activation_array, y_true_label)
         loss_history.append(loss)
 
-        gradients_dict: dict[str, np.ndarray] = full_backward_propagation(
+        gradients_dict = full_backward_propagation(
             a_activation_array,
             y_true_label,
             forward_propagation_cache,
             neural_network_state_dict,
             NEURAL_NETWORK_ARCHITECTURE,
         )
-        new_state_dict = update_layers(
+        update_layers(
             neural_network_state_dict,
             gradients_dict,
             NEURAL_NETWORK_ARCHITECTURE,
@@ -296,7 +289,7 @@ def train_model(
 
 
 def plot_loss_history(loss_history: list[float]) -> None:
-    reduced_loss_history = loss_history[::100]
+    reduced_loss_history = loss_history
     plt.plot(reduced_loss_history, marker="o")  # type: ignore
     plt.show()  # type: ignore
 

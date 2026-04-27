@@ -14,15 +14,15 @@ class InputManager:
                     label = float(user_input)
                 else:
                     label = 0.0
-                data_vector = [
-                    float(input(f"Enter vector value {i}: ")) for i in range(2)
+                data_values = [
+                    float(input(f"Enter vector value {i + 1}: ")) for i in range(2)
                 ]
-                if sum(data_vector) > 9999999:
+                if sum(data_values) > 9999999:
                     continue
             except Exception:
                 continue  # Keep asking if a typo is made
-            data_vector = np.array(data_vector)
-            return Data(label, data_vector)
+            data_vector = np.array(data_values).reshape(-1, 1)
+            return Data(np.array([[label]]), data_vector)
 
     def prompt_for_integer(self, prompt: str) -> int:
         while True:

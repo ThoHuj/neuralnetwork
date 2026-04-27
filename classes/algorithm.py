@@ -13,11 +13,13 @@ class Algorithm:
         a_activation_value_clipped = np.clip(a_activation_value, epsilon, (1 - epsilon))
 
         # Binary cross-entropy calculation
-        loss = -(
+        loss_array = -(
             y_true_label * np.log(a_activation_value_clipped)
             + (1 - y_true_label) * np.log(1 - a_activation_value_clipped)
         )
-        return float(loss)
+
+        loss = np.mean(loss_array).item()
+        return loss
 
     @staticmethod
     def cross_entropy_derivative(
