@@ -37,7 +37,7 @@ class Layer:
         self,
         previous_layer_a_activation: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
-        
+
         self.previous_a_activation_array = previous_layer_a_activation
 
         # Calculate pre activation values (z)
@@ -68,7 +68,8 @@ class Layer:
         # Calculate this layer's weight gradients (dW)
         self.current_dw_weight_gradient_array = (
             np.dot(
-                self.current_dz_pre_activation_gradient, self.previous_a_activation_array.T
+                self.current_dz_pre_activation_gradient,
+                self.previous_a_activation_array.T,
             )
             / m_batch_size
         )

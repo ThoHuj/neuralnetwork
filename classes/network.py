@@ -8,7 +8,6 @@ class Network:
     LEARNING_RATE: float = 0.01
     layers: list[Layer]
 
-
     def initialize_layers(
         self, neural_network_architecture: NeuralNetworkArchitecture, seed: int = 99
     ) -> None:
@@ -29,7 +28,6 @@ class Network:
 
             self.layers.append(Layer(weights, biases, activation_function_key))
 
-
     def full_forward_propagation(
         self,
         x_input_vector: np.ndarray,
@@ -43,7 +41,6 @@ class Network:
             )
 
         return current_a_activation_array
-
 
     def full_backward_propagation(
         self,
@@ -61,7 +58,6 @@ class Network:
                 previous_da_loss_gradient
             )
 
-
     def train_model(
         self,
         iterations: int,
@@ -76,9 +72,7 @@ class Network:
             column_means = np.mean(random_image_data_vector, axis=0)
             y_true_label = (column_means < 0.5).astype(float).reshape(1, -1)
 
-            a_activation_array = self.full_forward_propagation(
-                random_image_data_vector
-            )
+            a_activation_array = self.full_forward_propagation(random_image_data_vector)
             loss = Algorithm.cross_entropy(a_activation_array, y_true_label)
             loss_history.append(loss)
 
@@ -86,7 +80,6 @@ class Network:
             self.update_layers()
 
         return loss_history
-
 
     def update_layers(self) -> None:
         for layer in self.layers:
