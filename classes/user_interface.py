@@ -35,22 +35,21 @@ class UserInterface:
                     x_input_data: Tensor = self.input_manager.prompt_for_x_input_data()
                     a_activation_array: Tensor = self.model(x_input_data)
                     a_activation_array = a_activation_array.detach().cpu()
-                    print("\rPredicions: ", end="")
+                    print("Predicions: ")
                     for index, probability in enumerate(a_activation_array.flatten()):
                         predicted_class = "Bright" if probability < 0.5 else "Dark"
                         print(
-                            "\rOutput number: ",
+                            "Output number: ",
                             index,
                             "\nPrediction: ",
                             predicted_class,
                             "\nProbability:",
-                            probability,
-                            end="",
+                            probability.item(),
                         )
 
                 case "2":
                     epochs = self.input_manager.prompt_for_integer(
-                        prompt="\rEnter a number of data sets to train with: "
+                        prompt="Enter a number of data sets to train with: "
                     )
 
                     loss_history = self.model.train_model(epochs, self.data_generator)
@@ -58,4 +57,4 @@ class UserInterface:
                 case "q":
                     self.exit = True
                 case _:
-                    print("\rBad input", end="")
+                    print("Bad input")

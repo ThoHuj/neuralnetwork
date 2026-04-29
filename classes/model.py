@@ -40,4 +40,5 @@ class Model(nn.Module):
             loss.backward()  # type: ignore
             optimizer.step()  # type: ignore
             loss_history.append(loss.item())
+        print()
         return loss_history

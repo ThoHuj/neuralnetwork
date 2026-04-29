@@ -1,18 +1,19 @@
-from classes.network import Network
-from classes.input_manager import InputManager
-from classes.user_interface import UserInterface
+from classes.data_generator import DataGenerator
 from classes.data_plotter import DataPlotter
-from classes.neural_network_architecture import NeuralNetworkArchitecture
+from classes.input_manager import InputManager
+from classes.model import Model
+from classes.user_interface import UserInterface
 
 
 def main():
     """Constructs instances and run user interface."""
-    neural_network_architecture = NeuralNetworkArchitecture()
-    network = Network()
-    network.initialize_layers(neural_network_architecture)
+    model = Model()
+    print(next(model.parameters()).device)
+
     input_manager = InputManager()
     data_plotter = DataPlotter()
-    user_interface = UserInterface(input_manager, network, data_plotter)
+    data_generator = DataGenerator()
+    user_interface = UserInterface(input_manager, model, data_plotter, data_generator)
 
     user_interface.run()
 
