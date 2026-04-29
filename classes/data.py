@@ -1,9 +1,8 @@
 from dataclasses import dataclass
-
-import numpy as np
+from torch import Tensor
 
 
 @dataclass
 class Data:
-    y_true_label: np.ndarray
-    x_input_vector: np.ndarray
+    y_true_label: Tensor
+    x_input_vector: Tensor

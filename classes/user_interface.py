@@ -1,21 +1,28 @@
+from classes.data_generator import DataGenerator
 from classes.input_manager import InputManager
-from classes.network import Network
 from classes.data_plotter import DataPlotter
+from classes.model import Model
+from torch import Tensor
 
 
 class UserInterface:
     exit = False
     input_manager: InputManager
-    network: Network
+    model: Model
     data_plotter: DataPlotter
+    data_generator: DataGenerator
 
     def __init__(
-        self, input_manager: InputManager, network: Network, data_plotter: DataPlotter
+        self,
+        input_manager: InputManager,
+        model: Model,
+        data_plotter: DataPlotter,
+        data_generator: DataGenerator,
     ):
         self.input_manager = input_manager
-        self.network = network
+        self.model = model
         self.data_plotter = data_plotter
-        self.loss_history: list[float] = []
+        self.data_generator = data_generator
 
     def run(self):
         while self.exit is False:
@@ -24,11 +31,8 @@ class UserInterface:
             )
             match menu_choice:
                 case "1":
-                    data = self.input_manager.prompt_for_data(enter_label=False)
-                    a_activation_array = self.network.full_forward_propagation(
-                        data.x_input_vector
-                    )
-                    print(a_activation_array.shape[1])
+                    x_input_data: Tensor = self.input_manager.prompt_for_x_input_data()
+                    a_activation_array = self.model(x_input_data)
                     print("Predicions: ")
                     for index, probability in enumerate(a_activation_array.flatten()):
                         predicted_class = "Bright" if probability < 0.5 else "Dark"
@@ -42,12 +46,12 @@ class UserInterface:
                         )
 
                 case "2":
-                    iterations = self.input_manager.prompt_for_integer(
+                    epochs = self.input_manager.prompt_for_integer(
                         prompt="Enter a number of data sets to train with: "
                     )
 
-                    self.loss_history += self.network.train_model(iterations)
-                    self.data_plotter.plot_loss_history(self.loss_history)
+                    loss_history = self.model.train_model(epochs, self.data_generator)
+                    self.data_plotter.plot_loss_history(loss_history)
                 case "q":
                     self.exit = True
                 case _:

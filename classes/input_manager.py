@@ -1,19 +1,10 @@
-import numpy as np
-
-from classes.data import Data
+from torch import Tensor, tensor
 
 
 class InputManager:
-    def prompt_for_data(self, enter_label: bool = True) -> Data:
+    def prompt_for_x_input_data(self) -> Tensor:
         while True:
             try:
-                if enter_label:
-                    user_input = input(
-                        "Enter this vector's label (the correct answer): "
-                    )
-                    label = float(user_input)
-                else:
-                    label = 0.0
                 data_values = [
                     float(input(f"Enter vector value {i + 1}: ")) for i in range(2)
                 ]
@@ -21,8 +12,7 @@ class InputManager:
                     continue
             except Exception:
                 continue  # Keep asking if a typo is made
-            data_vector = np.array(data_values).reshape(-1, 1)
-            return Data(np.array([[label]]), data_vector)
+            return tensor(data_values)
 
     def prompt_for_integer(self, prompt: str) -> int:
         while True:
