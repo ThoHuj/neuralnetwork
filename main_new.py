@@ -1,13 +1,14 @@
 from classes.data_generator import DataGenerator
-from classes.model import Model
-from classes.input_manager import InputManager
 from classes.data_plotter import DataPlotter
+from classes.input_manager import InputManager
+from classes.model import Model
 from classes.user_interface import UserInterface
 
 
 def main():
     """Constructs instances and run user interface."""
     model = Model()
+    print(next(model.parameters()).device)
 
     input_manager = InputManager()
     data_plotter = DataPlotter()

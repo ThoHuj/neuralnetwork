@@ -1,8 +1,9 @@
-from classes.data_generator import DataGenerator
-from classes.input_manager import InputManager
-from classes.data_plotter import DataPlotter
-from classes.model import Model
 from torch import Tensor
+
+from classes.data_generator import DataGenerator
+from classes.data_plotter import DataPlotter
+from classes.input_manager import InputManager
+from classes.model import Model
 
 
 class UserInterface:
@@ -32,22 +33,24 @@ class UserInterface:
             match menu_choice:
                 case "1":
                     x_input_data: Tensor = self.input_manager.prompt_for_x_input_data()
-                    a_activation_array = self.model(x_input_data)
-                    print("Predicions: ")
+                    a_activation_array: Tensor = self.model(x_input_data)
+                    a_activation_array = a_activation_array.detach().cpu()
+                    print("\rPredicions: ", end="")
                     for index, probability in enumerate(a_activation_array.flatten()):
                         predicted_class = "Bright" if probability < 0.5 else "Dark"
                         print(
-                            "Output number: ",
+                            "\rOutput number: ",
                             index,
                             "\nPrediction: ",
                             predicted_class,
                             "\nProbability:",
                             probability,
+                            end="",
                         )
 
                 case "2":
                     epochs = self.input_manager.prompt_for_integer(
-                        prompt="Enter a number of data sets to train with: "
+                        prompt="\rEnter a number of data sets to train with: "
                     )
 
                     loss_history = self.model.train_model(epochs, self.data_generator)
@@ -55,4 +58,4 @@ class UserInterface:
                 case "q":
                     self.exit = True
                 case _:
-                    print("Bad input")
+                    print("\rBad input", end="")
