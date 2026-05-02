@@ -1,44 +1,50 @@
 from torch import Tensor, cuda, nn, optim
-
-from classes.data_generator import DataGenerator
+from torch.utils.data import DataLoader
 
 
 class Model(nn.Module):
-    DEFAULT_LEARNING_RATE = 0.1
+    DEFAULT_LEARNING_RATE = 0.001
 
     def __init__(self):
         super().__init__()
         self.device = "cuda" if cuda.is_available() else "cpu"
         self.linear_stack = nn.Sequential(
-            nn.Linear(2, 20),
-            nn.Sigmoid(),
-            nn.Linear(20, 1),
-            nn.Sigmoid(),
+            nn.Flatten(),
+            nn.Linear(784, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 10),
         )
         self.to(self.device)
 
     def forward(self, x_input_data: Tensor) -> Tensor:
         x_input_data = x_input_data.to(self.device)
-        a_activation: Tensor = self.linear_stack(x_input_data)
-        return a_activation
+        return self.linear_stack(x_input_data)
 
-    def train_model(self, epochs: int, data_generator: DataGenerator) -> list[float]:
-        loss_function = nn.BCELoss()
-        loss_history: list[float] = []
+    def train_model(
+        self, epochs: int, train_loader: DataLoader[tuple[Tensor, Tensor]]
+    ) -> list[float]:
+        loss_function = nn.CrossEntropyLoss()
         optimizer = optim.Adam(self.parameters(), lr=self.DEFAULT_LEARNING_RATE)
-        for epoch in range(epochs):
-            print(f"\r{epoch} of {epochs}", end="")
-            x_input_vector, y_true_label_vector = (
-                data_generator.generate_random_image_data(
-                    batch_size=100000, device=self.device
-                )
-            )
+        loss_history: list[float] = []
 
-            optimizer.zero_grad()
-            a_activation_vector = self(x_input_vector)
-            loss: Tensor = loss_function(a_activation_vector, y_true_label_vector)
-            loss.backward()  # type: ignore
-            optimizer.step()  # type: ignore
-            loss_history.append(loss.item())
+        for epoch in range(epochs):
+            running_loss = 0.0
+
+            for _, (images, labels) in enumerate(train_loader):
+                images, labels = images.to(self.device), labels.to(self.device)
+                optimizer.zero_grad()
+                output = self(images)
+                loss = loss_function(output, labels)
+                loss.backward()
+                optimizer.step()
+
+                running_loss += loss.item()
+
+            average_loss = running_loss / len(train_loader)
+            loss_history.append(average_loss)
+            print(f"Epoch {epoch + 1}/{epochs}, Loss: {average_loss}", end="")
+
         print()
         return loss_history

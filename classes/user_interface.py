@@ -52,7 +52,9 @@ class UserInterface:
                         prompt="Enter a number of data sets to train with: "
                     )
 
-                    loss_history = self.model.train_model(epochs, self.data_generator)
+                    loss_history = self.model.train_model(
+                        epochs, self.data_generator.train_loader
+                    )
                     self.data_plotter.plot_loss_history(loss_history)
                 case "q":
                     self.exit = True
