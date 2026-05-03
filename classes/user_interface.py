@@ -32,19 +32,18 @@ class UserInterface:
             )
             match menu_choice:
                 case "1":
-                    x_input_data: Tensor = self.input_manager.prompt_for_x_input_data()
-                    a_activation_array: Tensor = self.model(x_input_data)
-                    a_activation_array = a_activation_array.detach().cpu()
-                    print("Predicions: ")
-                    for index, probability in enumerate(a_activation_array.flatten()):
-                        predicted_class = "Bright" if probability < 0.5 else "Dark"
+                    images: Tensor
+                    labels: Tensor
+                    images, labels = next(iter(self.data_generator.test_loader))
+                    output: Tensor = self.model(images)
+                    predictions = output.argmax(dim=1).cpu()
+                    labels = labels.cpu()
+                    correct = (predictions == labels).sum().item()
+                    total = labels.size(0)
+                    print(f"Accuracy: {correct}/{total} ({100 * correct / total:.1f}%)")
+                    for index in range(min(10, total)):
                         print(
-                            "Output number: ",
-                            index,
-                            "\nPrediction: ",
-                            predicted_class,
-                            "\nProbability:",
-                            probability.item(),
+                            f"  Predicted: {predictions[index].item()}, Actual: {labels[index].item()}"
                         )
 
                 case "2":

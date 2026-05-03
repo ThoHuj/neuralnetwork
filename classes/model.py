@@ -32,7 +32,7 @@ class Model(nn.Module):
         for epoch in range(epochs):
             running_loss = 0.0
 
-            for _, (images, labels) in enumerate(train_loader):
+            for images, labels in train_loader:
                 images, labels = images.to(self.device), labels.to(self.device)
                 optimizer.zero_grad()
                 output = self(images)
@@ -44,7 +44,7 @@ class Model(nn.Module):
 
             average_loss = running_loss / len(train_loader)
             loss_history.append(average_loss)
-            print(f"Epoch {epoch + 1}/{epochs}, Loss: {average_loss}", end="")
+            print(f"\rEpoch {epoch + 1}/{epochs}, Loss: {average_loss:.4f}", end="")
 
         print()
         return loss_history
