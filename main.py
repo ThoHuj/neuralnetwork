@@ -12,7 +12,7 @@ def main():
 
     input_manager = InputManager()
     data_plotter = DataPlotter()
-    data_generator = DataGenerator()
+    data_generator = DataGenerator(batch_size=1024)
     user_interface = UserInterface(input_manager, model, data_plotter, data_generator)
 
     user_interface.run()

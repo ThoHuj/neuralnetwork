@@ -10,6 +10,5 @@ plt.style.use(matplotx.styles.pitaya_smoothie["dark"])  # type: ignore
 
 class DataPlotter:
     def plot_loss_history(self, loss_history: list[float]) -> None:
-        reduced_loss_history = loss_history
-        plt.plot(reduced_loss_history, marker="o")  # type: ignore
+        plt.plot(loss_history, marker="o")  # type: ignore
         plt.show()  # type: ignore

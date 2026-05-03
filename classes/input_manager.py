@@ -1,19 +1,4 @@
-from torch import Tensor, tensor
-
-
 class InputManager:
-    def prompt_for_x_input_data(self) -> Tensor:
-        while True:
-            try:
-                data_values = [
-                    float(input(f"Enter vector value {i + 1}: ")) for i in range(2)
-                ]
-                if sum(data_values) > 9999999:
-                    continue
-            except Exception:
-                continue  # Keep asking if a typo is made
-            return tensor(data_values)
-
     def prompt_for_integer(self, prompt: str) -> int:
         while True:
             try:

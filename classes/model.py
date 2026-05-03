@@ -10,11 +10,11 @@ class Model(nn.Module):
         self.device = "cuda" if cuda.is_available() else "cpu"
         self.linear_stack = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(784, 128),
+            nn.Linear(784, 10),
             nn.ReLU(),
-            nn.Linear(128, 64),
+            nn.Linear(10, 10),
             nn.ReLU(),
-            nn.Linear(64, 10),
+            nn.Linear(10, 10),
         )
         self.to(self.device)
 
@@ -33,10 +33,12 @@ class Model(nn.Module):
             running_loss = 0.0
 
             for images, labels in train_loader:
+                images: Tensor
+                labels: Tensor
                 images, labels = images.to(self.device), labels.to(self.device)
                 optimizer.zero_grad()
-                output = self(images)
-                loss = loss_function(output, labels)
+                output: Tensor = self(images)
+                loss: Tensor = loss_function(output, labels)
                 loss.backward()
                 optimizer.step()
 
