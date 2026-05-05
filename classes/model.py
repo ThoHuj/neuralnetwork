@@ -10,23 +10,40 @@ class Model(nn.Module):
     def __init__(self):
         super().__init__()
         self.device = "cuda" if cuda.is_available() else "cpu"
-        self.linear_stack = nn.Sequential(
+
+        self.features = nn.Sequential(
+            # input shape is 1x28x28 (1 grayscale channel, 28x28 pixels per image)
+            # Convolutional block 1
+            nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+            # Convolutional block 2
+            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2),
+        )
+
+        self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(784, 10),
+            nn.Linear(3136, 128),
             nn.ReLU(),
-            nn.Linear(10, 10),
-            nn.ReLU(),
-            nn.Linear(10, 10),
+            nn.Dropout(p=0.25),
+            nn.Linear(128, 10),
         )
         self.to(self.device)
 
-    def forward(self, x_input_data: Tensor) -> Tensor:
-        x_input_data = x_input_data.to(self.device)
-        return self.linear_stack(x_input_data)
+    def forward(self, x: Tensor) -> Tensor:
+        x = x.to(self.device)
+        x = self.features(x)
+        x = self.classifier(x)
+        return x
 
     def train_model(
         self, epochs: int, train_loader: DataLoader[tuple[Tensor, Tensor]]
     ) -> list[float]:
+        self.train()
         loss_function = nn.CrossEntropyLoss()
         optimizer = optim.Adam(self.parameters(), lr=self.DEFAULT_LEARNING_RATE)
         loss_history: list[float] = []

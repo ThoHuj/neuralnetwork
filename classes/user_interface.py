@@ -1,3 +1,4 @@
+import torch
 from torch import Tensor
 
 from classes.data_generator import DataGenerator
@@ -32,11 +33,13 @@ class UserInterface:
             )
             match menu_choice:
                 case "1":
-                    images: Tensor
-                    labels: Tensor
-                    images, labels = next(iter(self.data_generator.test_loader))
-                    output: Tensor = self.model(images)
-                    predictions = output.argmax(dim=1).cpu()
+                    self.model.eval()
+                    with torch.no_grad():
+                        images: Tensor
+                        labels: Tensor
+                        images, labels = next(iter(self.data_generator.test_loader))
+                        output: Tensor = self.model(images)
+                        predictions = output.argmax(dim=1).cpu()
                     labels = labels.cpu()
                     correct = (predictions == labels).sum().item()
                     total = labels.size(0)
