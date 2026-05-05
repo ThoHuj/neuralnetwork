@@ -1,3 +1,5 @@
+from typing import cast
+
 from torch import Tensor, cuda, nn, optim
 from torch.utils.data import DataLoader
 
@@ -38,9 +40,9 @@ class Model(nn.Module):
                 images, labels = images.to(self.device), labels.to(self.device)
                 optimizer.zero_grad()
                 output: Tensor = self(images)
-                loss: Tensor = loss_function(output, labels)
-                loss.backward()
-                optimizer.step()
+                loss = cast(Tensor, loss_function(output, labels))
+                loss.backward()  # pyright: ignore[reportUnknownMemberType]
+                optimizer.step()  # pyright: ignore[reportUnknownMemberType]
 
                 running_loss += loss.item()
 
