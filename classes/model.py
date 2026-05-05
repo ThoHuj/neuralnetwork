@@ -45,7 +45,9 @@ class Model(nn.Module):
     ) -> list[float]:
         self.train()
         loss_function = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(self.parameters(), lr=self.DEFAULT_LEARNING_RATE)
+        optimizer = optim.AdamW(
+            self.parameters(), lr=self.DEFAULT_LEARNING_RATE, weight_decay=1e-4
+        )
         loss_history: list[float] = []
 
         for epoch in range(epochs):
