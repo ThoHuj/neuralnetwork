@@ -209,3 +209,6 @@ __marimo__/
 
 # MNIST data
 data/
+
+# Mlflow data
+mlruns/
