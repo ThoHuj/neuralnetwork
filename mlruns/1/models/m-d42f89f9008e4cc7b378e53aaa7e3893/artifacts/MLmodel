@@ -1,0 +1,23 @@
+artifact_path: /home/thom/projects/neuralnetwork/mlruns/1/models/m-d42f89f9008e4cc7b378e53aaa7e3893/artifacts
+flavors:
+  python_function:
+    config:
+      device: null
+    data: data
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pytorch
+    pickle_module_name: mlflow.pytorch.pickle_module
+    python_version: 3.12.3
+  pytorch:
+    code: null
+    model_data: data
+    pytorch_version: 2.11.0+rocm7.2
+mlflow_version: 3.12.0
+model_id: m-d42f89f9008e4cc7b378e53aaa7e3893
+model_size_bytes: 1697945
+model_uuid: m-d42f89f9008e4cc7b378e53aaa7e3893
+prompts: null
+run_id: 498ffb3d7b3a4d678bca622f9b29d310
+utc_time_created: '2026-05-07 12:23:17.173315'

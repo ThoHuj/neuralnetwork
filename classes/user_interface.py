@@ -1,10 +1,10 @@
-import torch
-from torch import Tensor
+from torch import nn
 
 from classes.data_generator import DataGenerator
 from classes.data_plotter import DataPlotter
 from classes.input_manager import InputManager
 from classes.model import Model
+from classes.training_configuration import TrainingConfiguration
 
 
 class UserInterface:
@@ -33,31 +33,30 @@ class UserInterface:
             )
             match menu_choice:
                 case "1":
-                    self.model.eval()
-                    with torch.no_grad():
-                        images: Tensor
-                        labels: Tensor
-                        images, labels = next(iter(self.data_generator.test_loader))
-                        output: Tensor = self.model(images)
-                        predictions = output.argmax(dim=1).cpu()
-                    labels = labels.cpu()
-                    correct = (predictions == labels).sum().item()
-                    total = labels.size(0)
-                    print(f"Accuracy: {correct}/{total} ({100 * correct / total:.1f}%)")
-                    for index in range(min(10, total)):
-                        print(
-                            f"  Predicted: {predictions[index].item()}, Actual: {labels[index].item()}"
-                        )
+                    average_loss, accuracy = self.model.evaluate(
+                        self.data_generator.test_loader,
+                        loss_function=nn.CrossEntropyLoss(),
+                    )
+                    print(
+                        f"Model accuracy: {accuracy:.2%}",
+                        f"Average loss: {average_loss:.2f}",
+                    )
 
                 case "2":
                     epochs = self.input_manager.prompt_for_integer(
                         prompt="Enter a number of data sets to train with: "
                     )
-
-                    loss_history = self.model.train_model(
-                        epochs, self.data_generator.train_loader
+                    training_config = TrainingConfiguration(
+                        run_name="default",
+                        epochs=epochs,
+                        learning_rate=0.001,
+                        weight_decay=1e-4,
                     )
-                    self.data_plotter.plot_loss_history(loss_history)
+                    self.model.train_model(
+                        self.data_generator.train_loader,
+                        self.data_generator.test_loader,
+                        training_config,
+                    )
                 case "q":
                     self.exit = True
                 case _:
