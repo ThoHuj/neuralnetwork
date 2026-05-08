@@ -212,3 +212,4 @@ data/
 
 # Mlflow data
 mlruns/
+mlflow.db
