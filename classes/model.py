@@ -13,9 +13,6 @@ from classes.training_configuration import Configuration
 
 logging.getLogger("mlflow.pytorch").setLevel(logging.ERROR)
 
-MNIST_IMAGE_SIZE = 28
-MNIST_CLASSES_AMOUNT = 10
-
 
 def activation_function(name: Literal["relu"]) -> nn.Module:
     if name == "relu":
@@ -64,8 +61,8 @@ class Model(nn.Module):
             dummy_input = zeros(
                 1,
                 config.convolutional_in_channels[0],
-                MNIST_IMAGE_SIZE,
-                MNIST_IMAGE_SIZE,
+                config.image_size,
+                config.image_size,
             )
             flattened_size = int(self.features(dummy_input).view(1, -1).size(1))
 
@@ -74,7 +71,7 @@ class Model(nn.Module):
             nn.Linear(flattened_size, config.classifier_hidden_neurons),
             activation_function(config.activation_function),
             nn.Dropout(p=config.dropout_rate),
-            nn.Linear(config.classifier_hidden_neurons, MNIST_CLASSES_AMOUNT),
+            nn.Linear(config.classifier_hidden_neurons, config.num_classes),
         )
         self.to(self.device)
 
@@ -116,7 +113,9 @@ class Model(nn.Module):
         test_loader: DataLoader[tuple[Tensor, Tensor]],
         configuration: Configuration,
     ) -> None:
-        mlflow.set_experiment("mnist-cnn")  # pyright: ignore[reportUnknownMemberType]
+        mlflow.set_experiment(  # pyright: ignore[reportUnknownMemberType]
+            configuration.mlflow_experiment_name
+        )
 
         with mlflow.start_run(run_name=configuration.run_name):
             mlflow.log_params(asdict(configuration))

@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Literal
 
+DatasetKind = Literal["mnist", "image_folder"]
+
 
 @dataclass
 class Configuration:
@@ -19,6 +21,19 @@ class Configuration:
     activation_function: Literal["relu"]
 
     batch_normalization: bool
+
+    dataset_kind: DatasetKind
+    image_size: int
+    num_classes: int
+    normalize_mean: tuple[float, ...]
+    normalize_std: tuple[float, ...]
+    data_root_mnist: str
+    image_folder_train_dir: str
+    image_folder_val_dir: str
+    # If True with image_folder, missing train/val dirs are filled from the Microsoft
+    # Kaggle Cats vs Dogs archive (downloaded once, then split into train/val).
+    download_cats_dogs_filtered_if_missing: bool
+    mlflow_experiment_name: str
 
     # Augmentation configuration
     augmentation_use_affine: bool
