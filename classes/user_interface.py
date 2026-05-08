@@ -1,30 +1,31 @@
+from dataclasses import replace
+
 from torch import nn
 
 from classes.data_generator import DataGenerator
-from classes.data_plotter import DataPlotter
 from classes.input_manager import InputManager
 from classes.model import Model
-from classes.training_configuration import TrainingConfiguration
+from classes.training_configuration import Configuration
 
 
 class UserInterface:
     exit = False
     input_manager: InputManager
     model: Model
-    data_plotter: DataPlotter
     data_generator: DataGenerator
+    train_conf: Configuration
 
     def __init__(
         self,
         input_manager: InputManager,
         model: Model,
-        data_plotter: DataPlotter,
         data_generator: DataGenerator,
+        train_conf: Configuration,
     ):
         self.input_manager = input_manager
         self.model = model
-        self.data_plotter = data_plotter
         self.data_generator = data_generator
+        self.train_conf = train_conf
 
     def run(self):
         while self.exit is False:
@@ -44,18 +45,16 @@ class UserInterface:
 
                 case "2":
                     epochs = self.input_manager.prompt_for_integer(
-                        prompt="Enter a number of data sets to train with: "
+                        prompt="Enter a number of epochs: "
                     )
-                    training_config = TrainingConfiguration(
-                        run_name="default",
+                    run_configuration = replace(
+                        self.train_conf,
                         epochs=epochs,
-                        learning_rate=0.001,
-                        weight_decay=1e-4,
                     )
                     self.model.train_model(
                         self.data_generator.train_loader,
                         self.data_generator.test_loader,
-                        training_config,
+                        run_configuration,
                     )
                 case "q":
                     self.exit = True

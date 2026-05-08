@@ -1,45 +1,80 @@
 import logging
 import time
 from dataclasses import asdict
-from typing import cast
+from typing import Literal, cast
 
 import mlflow
 import mlflow.pytorch
 import torchvision  # type: ignore
-from torch import Tensor, __version__, cuda, nn, no_grad, optim
+from torch import Tensor, __version__, cuda, nn, no_grad, optim, zeros
 from torch.utils.data import DataLoader
 
-from classes.training_configuration import TrainingConfiguration
+from classes.training_configuration import Configuration
 
-# This prevents mlflow warnings from appearing in the terminal, but allows errors to be printed
 logging.getLogger("mlflow.pytorch").setLevel(logging.ERROR)
+
+MNIST_IMAGE_SIZE = 28
+MNIST_CLASSES_AMOUNT = 10
+
+
+def activation_function(name: Literal["relu"]) -> nn.Module:
+    if name == "relu":
+        return nn.ReLU()
+    raise ValueError(f"Unsupported activation: {name}")
 
 
 class Model(nn.Module):
-    def __init__(self):
+    def __init__(self, config: Configuration):
         super().__init__()
         self.device = "cuda" if cuda.is_available() else "cpu"
 
-        self.features = nn.Sequential(
-            # input shape is 1x28x28 (1 grayscale channel, 28x28 pixels per image)
-            # Convolutional block 1
-            nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, padding=1),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
-            # Convolutional block 2
-            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
+        block_count = len(config.convolutional_out_channels)
+        expected_lengths = (
+            len(config.convolutional_in_channels),
+            len(config.convolutional_kernel_sizes),
+            len(config.convolutional_paddings),
         )
+        if len(set((block_count,) + expected_lengths)) != 1:
+            raise ValueError(
+                "convolutional_in_channels, convolutional_out_channels, "
+                "convolutional_kernel_sizes, and convolutional_paddings "
+                "must all have the same length."
+            )
+
+        feature_layers: list[nn.Module] = []
+        for block_index in range(block_count):
+            feature_layers.append(
+                nn.Conv2d(
+                    in_channels=config.convolutional_in_channels[block_index],
+                    out_channels=config.convolutional_out_channels[block_index],
+                    kernel_size=config.convolutional_kernel_sizes[block_index],
+                    padding=config.convolutional_paddings[block_index],
+                )
+            )
+            if config.batch_normalization:
+                feature_layers.append(
+                    nn.BatchNorm2d(config.convolutional_out_channels[block_index])
+                )
+            feature_layers.append(activation_function(config.activation_function))
+            feature_layers.append(nn.MaxPool2d(2))
+
+        self.features = nn.Sequential(*feature_layers)
+
+        with no_grad():
+            dummy_input = zeros(
+                1,
+                config.convolutional_in_channels[0],
+                MNIST_IMAGE_SIZE,
+                MNIST_IMAGE_SIZE,
+            )
+            flattened_size = int(self.features(dummy_input).view(1, -1).size(1))
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(3136, 128),
-            nn.ReLU(),
-            nn.Dropout(p=0.25),
-            nn.Linear(128, 10),
+            nn.Linear(flattened_size, config.classifier_hidden_neurons),
+            activation_function(config.activation_function),
+            nn.Dropout(p=config.dropout_rate),
+            nn.Linear(config.classifier_hidden_neurons, MNIST_CLASSES_AMOUNT),
         )
         self.to(self.device)
 
@@ -79,27 +114,24 @@ class Model(nn.Module):
         self,
         train_loader: DataLoader[tuple[Tensor, Tensor]],
         test_loader: DataLoader[tuple[Tensor, Tensor]],
-        training_config: TrainingConfiguration,
+        configuration: Configuration,
     ) -> None:
-        # Set project
         mlflow.set_experiment("mnist-cnn")  # pyright: ignore[reportUnknownMemberType]
 
-        with mlflow.start_run(run_name=training_config.run_name):
-            # Log hyperparameters
-            mlflow.log_params(asdict(training_config))
+        with mlflow.start_run(run_name=configuration.run_name):
+            mlflow.log_params(asdict(configuration))
 
             self.train()
             loss_function = nn.CrossEntropyLoss()
             optimizer = optim.AdamW(
                 self.parameters(),
-                lr=training_config.learning_rate,
-                weight_decay=training_config.weight_decay,
+                lr=configuration.learning_rate,
+                weight_decay=configuration.weight_decay,
             )
 
             best_validation_accuracy = 0.0
 
-            for epoch in range(training_config.epochs):
-                # Start logging epoch duration
+            for epoch in range(configuration.epochs):
                 epoch_start = time.perf_counter()
                 running_loss = 0.0
 
@@ -118,12 +150,10 @@ class Model(nn.Module):
                 average_loss = running_loss / len(train_loader)
                 epoch_duration = time.perf_counter() - epoch_start
 
-                # Validation of epoch result
                 validation_loss, validation_accuracy = self.evaluate(
                     test_loader, loss_function
                 )
 
-                # Log epoch results
                 mlflow.log_metrics(
                     {
                         "training_loss": average_loss,
@@ -134,7 +164,6 @@ class Model(nn.Module):
                     step=epoch,
                 )
 
-                # Save checkpoint when model improves
                 if validation_accuracy > best_validation_accuracy:
                     best_validation_accuracy = validation_accuracy
                     mlflow.pytorch.log_model(  # pyright: ignore[reportUnknownMemberType, reportPrivateImportUsage]
@@ -148,7 +177,7 @@ class Model(nn.Module):
                     )
 
                 print(
-                    f"\rEpoch {epoch + 1}/{training_config.epochs}",
+                    f"Epoch {epoch + 1}/{configuration.epochs}",
                     f"Loss: {average_loss:.4f}",
                     f"Validation accuracy: {validation_accuracy:.2%}",
                     f"Epoch duration: {epoch_duration:.1f} seconds",
