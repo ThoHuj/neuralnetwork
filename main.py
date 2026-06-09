@@ -2,6 +2,7 @@ from classes.data_generator import DataGenerator
 from classes.input_manager import InputManager
 from classes.model import Model
 from classes.training_configuration import Configuration
+from classes.transfer_learning_model import TransferLearningModel
 from classes.user_interface import UserInterface
 
 DEFAULT_CONFIGURATION = Configuration(
@@ -49,6 +50,7 @@ DEFAULT_CONFIGURATION = Configuration(
     augmentation_randomerasing_probability=0.3,
     augmentation_randomerasing_scale=(0.02, 0.15),
     augmentation_use_randomhorizontalflip=False,
+    model_kind="custom_cnn",
 )
 
 CATS_DOGS_CONFIGURATION = Configuration(
@@ -97,15 +99,69 @@ CATS_DOGS_CONFIGURATION = Configuration(
     augmentation_randomerasing_probability=0.3,
     augmentation_randomerasing_scale=(0.02, 0.15),
     augmentation_use_randomhorizontalflip=True,
+    model_kind="custom_cnn",
 )
 
+TRANSFER_LEARNING_CONFIGURATION = Configuration(
+    run_name="transfer_resnet50_run1",
+    epochs=5,
+    learning_rate=0.001,
+    weight_decay=1e-4,
+    dropout_rate=0.25,
+    batch_size=32,
+    classifier_hidden_neurons=800,
+    convolutional_in_channels=[3, 32, 160],
+    convolutional_out_channels=[32, 160, 32],
+    convolutional_kernel_sizes=[3, 3, 3],
+    convolutional_paddings=[1, 1, 1],
+    activation_function="relu",
+    batch_normalization=False,
+    dataset_kind="image_folder",
+    image_size=224,
+    num_classes=2,
+    normalize_mean=(0.485, 0.456, 0.406),
+    normalize_std=(0.229, 0.224, 0.225),
+    data_root_mnist="./data",
+    image_folder_train_dir="./data/cats_dogs/train",
+    image_folder_val_dir="./data/cats_dogs/val",
+    download_cats_dogs_filtered_if_missing=True,
+    mlflow_experiment_name="cats-dogs-transfer-learning",
+    augmentation_use_affine=False,
+    augmentation_affine_degrees=10,
+    augmentation_affine_translate=(0.1, 0.1),
+    augmentation_affine_scale=(0.9, 1.1),
+    augmentation_affine_shear=10,
+    augmentation_use_colorjitter=False,
+    augmentation_colorjitter_brightness=0.2,
+    augmentation_colorjitter_contrast=0.2,
+    augmentation_colorjitter_saturation=0.2,
+    augmentation_colorjitter_hue=0.1,
+    augmentation_use_gaussianblur=False,
+    augmentation_gaussianblur_kernelsize=3,
+    augmentation_gaussianblur_sigma=(0.1, 0.5),
+    augmentation_use_gaussiannoise=False,
+    augmentation_gaussiannoise_mean=0.0,
+    augmentation_gaussiannoise_standarddeviation=0.05,
+    augmentation_use_randomerasing=False,
+    augmentation_randomerasing_probability=0.3,
+    augmentation_randomerasing_scale=(0.02, 0.15),
+    augmentation_use_randomhorizontalflip=True,
+    model_kind="transfer_learning",
+)
+
+# ACTIVE_CONFIGURATION = TRANSFER_LEARNING_CONFIGURATION
 ACTIVE_CONFIGURATION = CATS_DOGS_CONFIGURATION
 # ACTIVE_CONFIGURATION = DEFAULT_CONFIGURATION
 
 
 def main():
     """Constructs instances and run user interface."""
-    model = Model(ACTIVE_CONFIGURATION)
+    if ACTIVE_CONFIGURATION.model_kind == "transfer_learning":
+        model: Model | TransferLearningModel = TransferLearningModel(
+            ACTIVE_CONFIGURATION
+        )
+    else:
+        model = Model(ACTIVE_CONFIGURATION)
     print(next(model.parameters()).device)
 
     input_manager = InputManager()

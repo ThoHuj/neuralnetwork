@@ -2,85 +2,57 @@ import copy
 import logging
 import time
 from dataclasses import asdict
-from typing import Literal, cast
+from typing import cast
 
 import mlflow
 import mlflow.pytorch
 import torchvision  # type: ignore
-from torch import Tensor, __version__, cuda, nn, no_grad, optim, zeros
+from torch import Tensor, __version__, cuda, nn, no_grad, optim
 from torch.utils.data import DataLoader
+from torchvision.models import ResNet50_Weights, resnet50  # type: ignore
 
 from classes.training_configuration import Configuration
 
 logging.getLogger("mlflow.pytorch").setLevel(logging.ERROR)
 
-
-def activation_function(name: Literal["relu"]) -> nn.Module:
-    if name == "relu":
-        return nn.ReLU()
-    raise ValueError(f"Unsupported activation: {name}")
+RESNET50_BACKBONE_OUTPUT_FEATURES = 2048
 
 
-class Model(nn.Module):
-    def __init__(self, config: Configuration):
+class TransferLearningModel(nn.Module):
+    def __init__(self, configuration: Configuration) -> None:
         super().__init__()
         self.device = "cuda" if cuda.is_available() else "cpu"
 
-        block_count = len(config.convolutional_out_channels)
-        expected_lengths = (
-            len(config.convolutional_in_channels),
-            len(config.convolutional_kernel_sizes),
-            len(config.convolutional_paddings),
+        backbone = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
+        for parameter in backbone.parameters():
+            parameter.requires_grad = False
+
+        backbone.fc = nn.Identity()  # type: ignore[assignment]
+        self.backbone = backbone
+
+        self.classifier_head = nn.Sequential(
+            nn.Dropout(p=configuration.dropout_rate),
+            nn.Linear(RESNET50_BACKBONE_OUTPUT_FEATURES, configuration.num_classes),
         )
-        if len(set((block_count,) + expected_lengths)) != 1:
-            raise ValueError(
-                "convolutional_in_channels, convolutional_out_channels, "
-                "convolutional_kernel_sizes, and convolutional_paddings "
-                "must all have the same length."
-            )
 
-        feature_layers: list[nn.Module] = []
-        for block_index in range(block_count):
-            feature_layers.append(
-                nn.Conv2d(
-                    in_channels=config.convolutional_in_channels[block_index],
-                    out_channels=config.convolutional_out_channels[block_index],
-                    kernel_size=config.convolutional_kernel_sizes[block_index],
-                    padding=config.convolutional_paddings[block_index],
-                )
-            )
-            if config.batch_normalization:
-                feature_layers.append(
-                    nn.BatchNorm2d(config.convolutional_out_channels[block_index])
-                )
-            feature_layers.append(activation_function(config.activation_function))
-            feature_layers.append(nn.MaxPool2d(2))
-
-        self.features = nn.Sequential(*feature_layers)
-
-        with no_grad():
-            dummy_input = zeros(
-                1,
-                config.convolutional_in_channels[0],
-                config.image_size,
-                config.image_size,
-            )
-            flattened_size = int(self.features(dummy_input).view(1, -1).size(1))
-
-        self.classifier = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(flattened_size, config.classifier_hidden_neurons),
-            activation_function(config.activation_function),
-            nn.Dropout(p=config.dropout_rate),
-            nn.Linear(config.classifier_hidden_neurons, config.num_classes),
-        )
         self.to(self.device)
+
+        trainable_count = sum(
+            parameter.numel()
+            for parameter in self.parameters()
+            if parameter.requires_grad
+        )
+        total_count = sum(parameter.numel() for parameter in self.parameters())
+        print(
+            f"TransferLearningModel: {trainable_count:,} trainable"
+            f" / {total_count:,} total parameters"
+        )
 
     def forward(self, x: Tensor) -> Tensor:
         x = x.to(self.device)
-        x = self.features(x)
-        x = self.classifier(x)
-        return x
+        features: Tensor = self.backbone(x)
+        output: Tensor = self.classifier_head(features)
+        return output
 
     def evaluate(
         self,
@@ -124,7 +96,7 @@ class Model(nn.Module):
             self.train()
             loss_function = nn.CrossEntropyLoss()
             optimizer = optim.AdamW(
-                self.parameters(),
+                filter(lambda p: p.requires_grad, self.parameters()),
                 lr=configuration.learning_rate,
                 weight_decay=configuration.weight_decay,
             )

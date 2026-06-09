@@ -6,19 +6,20 @@ from classes.data_generator import DataGenerator
 from classes.input_manager import InputManager
 from classes.model import Model
 from classes.training_configuration import Configuration
+from classes.transfer_learning_model import TransferLearningModel
 
 
 class UserInterface:
     exit = False
     input_manager: InputManager
-    model: Model
+    model: Model | TransferLearningModel
     data_generator: DataGenerator
     train_conf: Configuration
 
     def __init__(
         self,
         input_manager: InputManager,
-        model: Model,
+        model: Model | TransferLearningModel,
         data_generator: DataGenerator,
         train_conf: Configuration,
     ):

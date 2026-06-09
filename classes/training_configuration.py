@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 DatasetKind = Literal["mnist", "image_folder"]
+ModelKind = Literal["custom_cnn", "transfer_learning"]
 
 
 @dataclass
@@ -61,3 +62,5 @@ class Configuration:
     augmentation_randomerasing_scale: tuple[float, float]
 
     augmentation_use_randomhorizontalflip: bool
+
+    model_kind: ModelKind = "custom_cnn"
